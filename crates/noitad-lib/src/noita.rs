@@ -41,7 +41,7 @@ impl NoitaPath {
         }
     }
     pub fn save_dir(self) -> Option<PathBuf> {
-        let parts = "LocalLow/Nolla_Games_Noita/save00";
+        let appdata_part = "AppData/LocalLow/Nolla_Games_Noita/save00";
         match self {
             NoitaPath::Steam => steamlocate::SteamDir::locate()
                 .as_mut()
@@ -53,8 +53,8 @@ impl NoitaPath {
                             library
                                 .join("compatdata")
                                 .join(&NOITA_STEAM_ID.to_string())
-                                .join("pfx/drive_c/users/steamuser/AppData")
-                                .join(parts)
+                                .join("pfx/drive_c/users/steamuser")
+                                .join(appdata_part)
                         })
                         .filter(|it| it.is_dir())
                         .next()
@@ -63,14 +63,14 @@ impl NoitaPath {
             NoitaPath::Other(game_path) => {
                 if cfg!(target_os = "windows") {
                     directories::UserDirs::new()
-                        .map(|it| it.home_dir().join(parts))
+                        .map(|it| it.home_dir().join(appdata_part))
                         .filter(|it| it.is_dir())
                 } else if cfg!(target_os = "linux") {
                     game_path
                         .map(|it| it.wine_prefix)
                         .flatten()
                         .map(|path| {
-                            WalkDir::new(path)
+                            WalkDir::new(path.join("drive_c/users"))
                                 .follow_links(true)
                                 .max_depth(1)
                                 .into_iter()
@@ -80,7 +80,7 @@ impl NoitaPath {
                                 .find_map(|it| it.map(|e| e.into_path()).ok())
                         })
                         .flatten()
-                        .map(|p| p.join(parts))
+                        .map(|p| p.join(appdata_part))
                         .filter(|p| p.is_dir())
                 } else {
                     unimplemented!()
