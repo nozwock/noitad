@@ -2,6 +2,7 @@
 name = "noitad-cli"
 version.workspace = true
 edition.workspace = true
+rust_version.workspace = true
 
 [dependencies]
 clap = "4.5"
