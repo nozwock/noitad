@@ -1,0 +1,9 @@
+[package]
+name = "noitad-lib"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+config = "0.14"
+directories = "5.0"
+eyre.workspace = true
