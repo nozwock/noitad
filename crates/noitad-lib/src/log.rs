@@ -15,6 +15,8 @@ pub struct RotatingWriter {
 
 impl RotatingWriter {
     pub fn new(mut max: usize, dir: impl AsRef<Path>, prefix: impl AsRef<str>) -> Result<Self> {
+        fs::create_dir_all(dir.as_ref())?;
+
         if max < 1 {
             max = 1
         }
