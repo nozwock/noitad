@@ -1,6 +1,7 @@
 use std::path::PathBuf;
 
 use serde::{Deserialize, Serialize};
+use walkdir::WalkDir;
 
 use crate::NOITA_STEAM_ID;
 
@@ -37,6 +38,54 @@ impl NoitaPath {
                 .map(|it| it.app(&NOITA_STEAM_ID).map(|it| it.path.clone()))
                 .flatten(),
             NoitaPath::Other(game_path) => game_path.map(|it| it.game_root),
+        }
+    }
+    pub fn save_dir(self) -> Option<PathBuf> {
+        let parts = "LocalLow/Nolla_Games_Noita/save00";
+        match self {
+            NoitaPath::Steam => steamlocate::SteamDir::locate()
+                .as_mut()
+                .map(|it| {
+                    it.libraryfolders()
+                        .paths
+                        .iter()
+                        .map(|library: &PathBuf| {
+                            library
+                                .join("compatdata")
+                                .join(&NOITA_STEAM_ID.to_string())
+                                .join("pfx/drive_c/users/steamuser/AppData")
+                                .join(parts)
+                        })
+                        .filter(|it| it.is_dir())
+                        .next()
+                })
+                .flatten(),
+            NoitaPath::Other(game_path) => {
+                if cfg!(target_os = "windows") {
+                    directories::UserDirs::new()
+                        .map(|it| it.home_dir().join(parts))
+                        .filter(|it| it.is_dir())
+                } else if cfg!(target_os = "linux") {
+                    game_path
+                        .map(|it| it.wine_prefix)
+                        .flatten()
+                        .map(|path| {
+                            WalkDir::new(path)
+                                .follow_links(true)
+                                .max_depth(1)
+                                .into_iter()
+                                .filter_entry(|e| {
+                                    e.file_name() != "Public" || e.file_name() != "steamuser"
+                                })
+                                .find_map(|it| it.map(|e| e.into_path()).ok())
+                        })
+                        .flatten()
+                        .map(|p| p.join(parts))
+                        .filter(|p| p.is_dir())
+                } else {
+                    unimplemented!()
+                }
+            }
         }
     }
     pub fn workshop(self) -> Option<PathBuf> {
