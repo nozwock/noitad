@@ -10,3 +10,4 @@ steamlocate = "1.2.1"
 color-eyre.workspace = true
 fs-err.workspace = true
 serde.workspace = true
+itertools.workspace = true
