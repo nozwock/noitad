@@ -31,16 +31,16 @@ impl Default for NoitaPath {
 }
 
 impl NoitaPath {
-    pub fn game_root(self) -> Option<PathBuf> {
+    pub fn game_root(&self) -> Option<PathBuf> {
         match self {
             NoitaPath::Steam => steamlocate::SteamDir::locate()
                 .as_mut()
                 .map(|it| it.app(&NOITA_STEAM_ID).map(|it| it.path.clone()))
                 .flatten(),
-            NoitaPath::Other(game_path) => game_path.map(|it| it.game_root),
+            NoitaPath::Other(game_path) => game_path.as_ref().map(|it| it.game_root.clone()),
         }
     }
-    pub fn save_dir(self) -> Option<PathBuf> {
+    pub fn save_dir(&self) -> Option<PathBuf> {
         let appdata_part = "AppData/LocalLow/Nolla_Games_Noita/save00";
         match self {
             NoitaPath::Steam => steamlocate::SteamDir::locate()
@@ -67,7 +67,8 @@ impl NoitaPath {
                         .filter(|it| it.is_dir())
                 } else if cfg!(target_os = "linux") {
                     game_path
-                        .map(|it| it.wine_prefix)
+                        .as_ref()
+                        .map(|it| it.wine_prefix.clone())
                         .flatten()
                         .map(|path| {
                             WalkDir::new(path.join("drive_c/users"))
@@ -88,7 +89,7 @@ impl NoitaPath {
             }
         }
     }
-    pub fn workshop(self) -> Option<PathBuf> {
+    pub fn workshop(&self) -> Option<PathBuf> {
         match self {
             NoitaPath::Steam => steamlocate::SteamDir::locate()
                 .as_mut()
@@ -108,7 +109,7 @@ impl NoitaPath {
             _ => None,
         }
     }
-    pub fn local_mods(self) -> Option<PathBuf> {
+    pub fn local_mods(&self) -> Option<PathBuf> {
         self.game_root().map(|p| p.join("mods"))
     }
 }
