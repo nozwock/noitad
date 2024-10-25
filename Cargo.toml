@@ -17,3 +17,4 @@ opt-level = 3
 noitad-lib = { path = "crates/noitad-lib" }
 
 color-eyre = "0.6"
+fs-err = "3.0"

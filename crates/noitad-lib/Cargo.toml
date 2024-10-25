@@ -7,3 +7,4 @@ edition.workspace = true
 config = "0.14"
 directories = "5.0"
 color-eyre.workspace = true
+fs-err.workspace = true
