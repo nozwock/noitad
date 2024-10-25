@@ -6,6 +6,7 @@ edition.workspace = true
 [dependencies]
 config = "0.14"
 directories = "5.0"
+steamlocate = "1.2.1"
 color-eyre.workspace = true
 fs-err.workspace = true
 serde.workspace = true
