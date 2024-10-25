@@ -74,6 +74,7 @@ impl NoitaPath {
                             WalkDir::new(path.join("drive_c/users"))
                                 .follow_links(true)
                                 .max_depth(1)
+                                .min_depth(1)
                                 .into_iter()
                                 .filter_entry(|e| {
                                     e.file_name() != "Public" || e.file_name() != "steamuser"
