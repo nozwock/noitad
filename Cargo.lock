@@ -493,7 +493,6 @@ version = "0.1.0"
 dependencies = [
  "clap",
  "color-eyre",
- "eyre",
  "noitad-lib",
 ]
 
@@ -501,9 +500,9 @@ dependencies = [
 name = "noitad-lib"
 version = "0.1.0"
 dependencies = [
+ "color-eyre",
  "config",
  "directories",
- "eyre",
 ]
 
 [[package]]

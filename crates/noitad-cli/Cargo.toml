@@ -6,5 +6,4 @@ edition.workspace = true
 [dependencies]
 clap = "4.5"
 noitad-lib.workspace = true
-eyre.workspace = true
 color-eyre.workspace = true

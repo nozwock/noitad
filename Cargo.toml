@@ -8,11 +8,12 @@ edition = "2021"
 
 [profile.release]
 strip = true
-# opt-level = "s"
 lto = "thin"
+
+[profile.dev.package.backtrace]
+opt-level = 3
 
 [workspace.dependencies]
 noitad-lib = { path = "crates/noitad-lib" }
 
-eyre = "0.6"
 color-eyre = "0.6"
