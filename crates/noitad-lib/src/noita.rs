@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use serde::{Deserialize, Serialize};
 use walkdir::WalkDir;
 
-use crate::NOITA_STEAM_ID;
+use crate::defines::NOITA_STEAM_ID;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GamePath {

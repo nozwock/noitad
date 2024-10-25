@@ -1,4 +1,3 @@
 pub mod config;
+pub mod defines;
 pub mod noita;
-
-pub const NOITA_STEAM_ID: u32 = 881100;
