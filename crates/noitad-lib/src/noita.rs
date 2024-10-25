@@ -1,10 +1,19 @@
 use std::path::PathBuf;
 
+use serde::{Deserialize, Serialize};
+
 use crate::NOITA_STEAM_ID;
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct GamePath {
+    game_root: PathBuf,
+    wine_prefix: Option<PathBuf>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum NoitaPath {
     Steam,
-    GameRoot(Option<PathBuf>),
+    Other(Option<GamePath>),
 }
 
 impl Default for NoitaPath {
@@ -15,7 +24,7 @@ impl Default for NoitaPath {
 
         match steam_app_found {
             true => Self::Steam,
-            false => Self::GameRoot(None),
+            false => Self::Other(None),
         }
     }
 }
@@ -27,7 +36,7 @@ impl NoitaPath {
                 .as_mut()
                 .map(|it| it.app(&NOITA_STEAM_ID).map(|it| it.path.clone()))
                 .flatten(),
-            NoitaPath::GameRoot(path) => path,
+            NoitaPath::Other(game_path) => game_path.map(|it| it.game_root),
         }
     }
     pub fn workshop(self) -> Option<PathBuf> {
