@@ -1,5 +1,4 @@
-use color_eyre::eyre::{bail, Result};
-use confy::ConfyError;
+use color_eyre::eyre::{self, Result};
 use fs_err as fs;
 use serde::{Deserialize, Serialize};
 
@@ -20,15 +19,7 @@ impl Default for Config {
 
 impl Config {
     pub fn load() -> Result<Self> {
-        let cfg = match confy::load_path::<Self>(APP_CONFIG_PATH.as_path()) {
-            Ok(cfg) => cfg,
-            Err(ConfyError::BadTomlData(_err)) => {
-                fs::remove_file(APP_CONFIG_PATH.as_path())?;
-                confy::load_path::<Self>(APP_CONFIG_PATH.as_path())?
-            }
-            Err(err) => bail!(err),
-        };
-        Ok(cfg)
+        confy::load_path::<Self>(APP_CONFIG_PATH.as_path()).map_err(eyre::Report::msg)
     }
     pub fn store(self) -> Result<()> {
         confy::store_path(APP_CONFIG_PATH.as_path(), self)?;
