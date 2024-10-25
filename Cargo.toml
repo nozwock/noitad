@@ -17,6 +17,7 @@ opt-level = 3
 [workspace.dependencies]
 noitad-lib = { path = "crates/noitad-lib" }
 
+directories = "5.0"
 color-eyre = "0.6"
 fs-err = "3.0"
 serde = { version = "1.0", features = ["derive"] }

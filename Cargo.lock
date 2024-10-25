@@ -538,6 +538,7 @@ version = "0.1.0"
 dependencies = [
  "clap",
  "color-eyre",
+ "directories",
  "fs-err",
  "noitad-lib",
  "tracing",

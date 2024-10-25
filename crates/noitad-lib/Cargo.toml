@@ -6,7 +6,7 @@ rust_version.workspace = true
 
 [dependencies]
 confy = "0.6"
-directories = "5.0"
+directories.workspace = true
 steamlocate = "1.2.1"
 color-eyre.workspace = true
 fs-err.workspace = true
