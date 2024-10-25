@@ -11,3 +11,5 @@ color-eyre.workspace = true
 fs-err.workspace = true
 serde.workspace = true
 itertools.workspace = true
+whoami = "1.5.2"
+walkdir.workspace = true
