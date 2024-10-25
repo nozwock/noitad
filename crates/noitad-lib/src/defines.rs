@@ -9,3 +9,6 @@ pub static APP_CONFIG_DIR: LazyLock<PathBuf> = LazyLock::new(|| {
         .map(|it| it.config_local_dir().join(APP_DIR))
         .unwrap_or_default()
 });
+
+pub static APP_CONFIG_PATH: LazyLock<PathBuf> =
+    LazyLock::new(|| APP_CONFIG_DIR.join("config.toml"));
