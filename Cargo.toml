@@ -18,3 +18,4 @@ noitad-lib = { path = "crates/noitad-lib" }
 
 color-eyre = "0.6"
 fs-err = "3.0"
+serde = { version = "1.0", features = ["derive"] }

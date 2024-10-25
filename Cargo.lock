@@ -519,6 +519,7 @@ dependencies = [
  "config",
  "directories",
  "fs-err",
+ "serde",
 ]
 
 [[package]]
