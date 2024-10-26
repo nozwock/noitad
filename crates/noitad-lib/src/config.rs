@@ -2,17 +2,22 @@ use color_eyre::eyre::{self, Result};
 use fs_err as fs;
 use serde::{Deserialize, Serialize};
 
-use crate::{defines::APP_CONFIG_PATH, noita::NoitaPath};
+use crate::{
+    defines::APP_CONFIG_PATH,
+    noita::{ModProfiles, NoitaPath},
+};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Config {
     noita_path: NoitaPath,
+    profiles: ModProfiles,
 }
 
 impl Default for Config {
     fn default() -> Self {
         Self {
             noita_path: Default::default(),
+            profiles: Default::default(),
         }
     }
 }
