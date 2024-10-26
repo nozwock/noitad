@@ -13,10 +13,7 @@ use mod_config::Mods;
 use serde::{Deserialize, Serialize};
 use walkdir::WalkDir;
 
-use crate::{
-    config::Config,
-    defines::{MOD_PROFILES_DIR, NOITA_STEAM_ID},
-};
+use crate::defines::{MOD_PROFILES_DIR, NOITA_STEAM_ID};
 
 /// HashMap of profile names and filepath to their mod_config file.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
@@ -65,6 +62,18 @@ impl ModProfiles {
             bail!("Profile '{}' doesn't exist", profile.as_ref())
         }
         self.write_profile(profile, mod_list)?;
+
+        Ok(())
+    }
+    pub fn remove_profile(&mut self, profile: impl AsRef<str>) -> Result<()> {
+        self.remove(profile.as_ref()).with_context(|| {
+            format!(
+                "Profile '{}' does not exist and cannot be removed",
+                profile.as_ref()
+            )
+        })?;
+
+        fs::remove_file(MOD_PROFILES_DIR.join(profile.as_ref()))?;
 
         Ok(())
     }
