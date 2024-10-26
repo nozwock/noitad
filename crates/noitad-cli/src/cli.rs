@@ -9,7 +9,7 @@ use clap::{Parser, Subcommand};
 )]
 pub struct NoitdCli {
     #[command(subcommand)]
-    command: Command,
+    pub command: Command,
 }
 
 #[derive(Debug, Clone, Subcommand)]
