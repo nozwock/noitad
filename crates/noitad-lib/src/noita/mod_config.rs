@@ -41,15 +41,21 @@ impl Mods {
         let mut new_mods = vec![];
 
         let len = self.mods.len();
-        for i in 0..len {
-            for mod_ in noita_mod_list.mods.iter() {
+        for mod_ in noita_mod_list.mods.iter() {
+            let mut common = None;
+            for i in 0..len {
                 if self.mods[i].name == mod_.name {
-                    self.mods[i].enabled = mod_.enabled;
-                    self.mods[i].settings_fold_open = mod_.settings_fold_open;
-                    self.mods[i].workshop_item_id = mod_.workshop_item_id;
-                } else {
-                    new_mods.push(mod_);
+                    common = Some(i);
+                    break;
                 }
+            }
+
+            if let Some(i) = common {
+                self.mods[i].enabled = mod_.enabled;
+                self.mods[i].settings_fold_open = mod_.settings_fold_open;
+                self.mods[i].workshop_item_id = mod_.workshop_item_id;
+            } else {
+                new_mods.push(mod_);
             }
         }
 
