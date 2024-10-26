@@ -3,16 +3,20 @@ use fs_err as fs;
 
 use std::{
     collections::HashMap,
+    io::Write,
     ops::{Deref, DerefMut},
     path::PathBuf,
 };
 
-use color_eyre::eyre::{ContextCompat, Result};
+use color_eyre::eyre::{bail, ContextCompat, Result};
 use mod_config::Mods;
 use serde::{Deserialize, Serialize};
 use walkdir::WalkDir;
 
-use crate::defines::NOITA_STEAM_ID;
+use crate::{
+    config::Config,
+    defines::{MOD_PROFILES_DIR, NOITA_STEAM_ID},
+};
 
 /// HashMap of profile names and filepath to their mod_config file.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
@@ -33,12 +37,46 @@ impl DerefMut for ModProfiles {
 }
 
 impl ModProfiles {
+    pub fn add_profile(&mut self, profile: impl AsRef<str>, cfg: &Config) -> Result<Mods> {
+        if self.get(profile.as_ref()).is_some() {
+            bail!("Profile '{}' already exists", profile.as_ref())
+        }
+
+        let path = cfg
+            .noita_path
+            .save_dir()
+            .context("Couldn't find Noita's save directory")?
+            .join("mod_config.xml");
+        let mod_list = quick_xml::de::from_str::<Mods>(&fs::read_to_string(path)?)?;
+        let path = self.write_profile(profile.as_ref(), &mod_list)?;
+        self.insert(profile.as_ref().into(), path);
+
+        Ok(mod_list)
+    }
     pub fn get_profile(&self, profile: impl AsRef<str>) -> Result<Mods> {
         let path = self
             .get(profile.as_ref())
             .with_context(|| format!("Profile '{}' not found.", profile.as_ref()))?;
 
         Ok(quick_xml::de::from_str(&fs::read_to_string(path)?)?)
+    }
+    pub fn update_profile(&mut self, profile: impl AsRef<str>, mod_list: &Mods) -> Result<()> {
+        if self.get(profile.as_ref()).is_none() {
+            bail!("Profile '{}' doesn't exist", profile.as_ref())
+        }
+        self.write_profile(profile, mod_list)?;
+
+        Ok(())
+    }
+    fn write_profile(&mut self, profile: impl AsRef<str>, mod_list: &Mods) -> Result<PathBuf> {
+        fs::create_dir_all(MOD_PROFILES_DIR.as_path())?;
+        let path = MOD_PROFILES_DIR.join(profile.as_ref());
+        fs::OpenOptions::new()
+            .write(true)
+            .open(&path)?
+            .write_fmt(format_args!("{}", quick_xml::se::to_string(mod_list)?))?;
+
+        Ok(path)
     }
 }
 

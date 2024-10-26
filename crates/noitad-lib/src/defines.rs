@@ -12,3 +12,5 @@ pub static APP_CONFIG_DIR: LazyLock<PathBuf> = LazyLock::new(|| {
 
 pub static APP_CONFIG_PATH: LazyLock<PathBuf> =
     LazyLock::new(|| APP_CONFIG_DIR.join("config.toml"));
+
+pub static MOD_PROFILES_DIR: LazyLock<PathBuf> = LazyLock::new(|| APP_CONFIG_DIR.join("profiles"));
