@@ -52,6 +52,9 @@ fn main() -> Result<()> {
     match cli.command {
         cli::Command::Add { profile } => {
             cfg.profiles.add_profile(&profile, get_save_dir(&cfg)?)?;
+            if cfg.active_profile.is_none() {
+                cfg.active_profile = Some(profile.to_owned());
+            }
             cfg.store()?;
             eprintln!("Added profile '{}'", profile);
         }
