@@ -1,4 +1,4 @@
-use clap::{Parser, Subcommand};
+use clap::{builder::Str, Parser, Subcommand};
 
 #[derive(Debug, Clone, Parser)]
 #[command(
@@ -38,7 +38,7 @@ pub enum Command {
     /// Edit an existing mod profile
     #[command()]
     Edit {
-        #[arg()]
-        profile: String,
+        #[arg(short, long)]
+        profile: Option<String>,
     },
 }
