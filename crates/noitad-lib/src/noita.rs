@@ -1,14 +1,46 @@
 pub mod mod_config;
+use fs_err as fs;
 
-use std::{collections::HashMap, path::PathBuf};
+use std::{
+    collections::HashMap,
+    ops::{Deref, DerefMut},
+    path::PathBuf,
+};
 
+use color_eyre::eyre::{ContextCompat, Result};
+use mod_config::Mods;
 use serde::{Deserialize, Serialize};
 use walkdir::WalkDir;
 
 use crate::defines::NOITA_STEAM_ID;
 
 /// HashMap of profile names and filepath to their mod_config file.
-pub type ModProfiles = HashMap<String, PathBuf>;
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct ModProfiles(pub HashMap<String, PathBuf>);
+
+impl Deref for ModProfiles {
+    type Target = HashMap<String, PathBuf>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl DerefMut for ModProfiles {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
+}
+
+impl ModProfiles {
+    pub fn get_profile(&self, profile: impl AsRef<str>) -> Result<Mods> {
+        let path = self
+            .get(profile.as_ref())
+            .with_context(|| format!("Profile '{}' not found.", profile.as_ref()))?;
+
+        Ok(quick_xml::de::from_str(&fs::read_to_string(path)?)?)
+    }
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GamePath {
