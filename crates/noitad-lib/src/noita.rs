@@ -77,6 +77,23 @@ impl ModProfiles {
 
         Ok(())
     }
+    pub fn overwrite_with_profile(
+        &self,
+        profile: impl AsRef<str>,
+        noita_save_dir: impl AsRef<Path>,
+    ) -> Result<()> {
+        fs::copy(
+            self.get(profile.as_ref()).with_context(|| {
+                format!(
+                    "Profile '{}' doesn't exist and cannot be switched to",
+                    profile.as_ref()
+                )
+            })?,
+            noita_save_dir.as_ref().join("mod_config.xml"),
+        )?;
+
+        Ok(())
+    }
     fn get_profile_file_path(profile: impl AsRef<str>) -> PathBuf {
         MOD_PROFILES_DIR.join(format!("{}.xml", profile.as_ref()))
     }
