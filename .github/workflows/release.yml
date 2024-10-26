@@ -1,8 +1,8 @@
 name: Build and release
-
 on:
   workflow_dispatch:
-
+permissions:
+  contents: write
 jobs:
   build:
     uses: ./.github/workflows/build_artifacts.yml
