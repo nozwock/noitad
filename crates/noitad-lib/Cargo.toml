@@ -6,6 +6,7 @@ rust_version.workspace = true
 
 [dependencies]
 confy = "0.6"
+quick-xml = { version = "0.36.2", features = ["serialize"] }
 directories.workspace = true
 steamlocate = "1.2.1"
 color-eyre.workspace = true
