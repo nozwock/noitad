@@ -66,10 +66,17 @@ fn main() -> Result<()> {
             );
         }
         cli::Command::Switch { profile } => {
-            cfg.profiles
-                .overwrite_with_profile(&profile, get_save_dir(&cfg)?)?;
+            let noita_save_dir = get_save_dir(&cfg)?;
+            let mut mod_list = cfg.profiles.get_profile(&profile)?;
+
+            if cfg.active_profile_sync {
+                mod_list.sync_with_noita(&noita_save_dir)?;
+            }
+            mod_list.overwrite_noita_mod_list(&noita_save_dir)?;
             cfg.active_profile = Some(profile.to_owned());
+
             cfg.store()?;
+
             eprintln!("Switched to profile '{}'", profile);
         }
         cli::Command::Edit { profile } => todo!(),
