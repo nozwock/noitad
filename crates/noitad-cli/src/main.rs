@@ -1,3 +1,5 @@
+mod cli;
+
 use color_eyre::eyre::Result;
 use noitad_lib::{defines::APP_CONFIG_PATH, log::RotatingWriter};
 use tracing_subscriber::{fmt, prelude::*, EnvFilter};
