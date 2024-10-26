@@ -5,7 +5,7 @@ use std::{
     collections::HashMap,
     io::Write,
     ops::{Deref, DerefMut},
-    path::PathBuf,
+    path::{Path, PathBuf},
 };
 
 use color_eyre::eyre::{bail, ContextCompat, Result};
@@ -37,16 +37,16 @@ impl DerefMut for ModProfiles {
 }
 
 impl ModProfiles {
-    pub fn add_profile(&mut self, profile: impl AsRef<str>, cfg: &Config) -> Result<Mods> {
+    pub fn add_profile(
+        &mut self,
+        profile: impl AsRef<str>,
+        noita_save_dir: impl AsRef<Path>,
+    ) -> Result<Mods> {
         if self.get(profile.as_ref()).is_some() {
             bail!("Profile '{}' already exists", profile.as_ref())
         }
 
-        let path = cfg
-            .noita_path
-            .save_dir()
-            .context("Couldn't find Noita's save directory")?
-            .join("mod_config.xml");
+        let path = noita_save_dir.as_ref().join("mod_config.xml");
         let mod_list = quick_xml::de::from_str::<Mods>(&fs::read_to_string(path)?)?;
         let path = self.write_profile(profile.as_ref(), &mod_list)?;
         self.insert(profile.as_ref().into(), path);
