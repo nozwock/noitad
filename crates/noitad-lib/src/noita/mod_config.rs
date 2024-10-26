@@ -1,3 +1,7 @@
+use std::{io::Write, path::Path};
+
+use color_eyre::eyre::Result;
+use fs_err as fs;
 use serde::{Deserialize, Serialize, Serializer};
 
 fn serialize_bool_as_number<S: Serializer>(value: &bool, serializer: S) -> Result<S::Ok, S::Error> {
@@ -22,4 +26,16 @@ pub struct Mod {
     pub settings_fold_open: bool,
     #[serde(rename = "@workshop_item_id")]
     pub workshop_item_id: usize,
+}
+
+impl Mods {
+    pub fn overwrite_noita_mod_list(
+        mod_list: &Mods,
+        noita_save_dir: impl AsRef<Path>,
+    ) -> Result<()> {
+        fs::File::create(noita_save_dir.as_ref().join("mod_config.xml"))?
+            .write_fmt(format_args!("{}", quick_xml::se::to_string(mod_list)?))?;
+
+        Ok(())
+    }
 }
