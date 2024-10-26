@@ -9,8 +9,8 @@ use crate::{
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Config {
-    noita_path: NoitaPath,
-    profiles: ModProfiles,
+    pub noita_path: NoitaPath,
+    pub profiles: ModProfiles,
 }
 
 impl Default for Config {
