@@ -43,8 +43,7 @@ impl ModProfiles {
             bail!("Profile '{}' already exists", profile.as_ref())
         }
 
-        let path = noita_save_dir.as_ref().join("mod_config.xml");
-        let mod_list = quick_xml::de::from_str::<Mods>(&fs::read_to_string(path)?)?;
+        let mod_list = Mods::from_noita(noita_save_dir.as_ref())?;
         let path = self.write_profile(profile.as_ref(), &mod_list)?;
         self.insert(profile.as_ref().into(), path);
 

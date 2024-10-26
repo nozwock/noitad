@@ -1,6 +1,6 @@
 use std::{io::Write, path::Path};
 
-use color_eyre::eyre::Result;
+use color_eyre::eyre::{self, Result};
 use fs_err as fs;
 use serde::{Deserialize, Serialize, Serializer};
 
@@ -29,6 +29,12 @@ pub struct Mod {
 }
 
 impl Mods {
+    pub fn from_noita(noita_save_dir: impl AsRef<Path>) -> Result<Self> {
+        quick_xml::de::from_str(&fs::read_to_string(
+            noita_save_dir.as_ref().join("mod_config.xml"),
+        )?)
+        .map_err(eyre::Report::msg)
+    }
     pub fn overwrite_noita_mod_list(
         mod_list: &Mods,
         noita_save_dir: impl AsRef<Path>,
