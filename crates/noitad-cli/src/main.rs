@@ -129,13 +129,9 @@ fn main() -> Result<()> {
                 )
             }
 
-            for i in selected
-                .into_iter()
-                .map(|it| it.0)
-                .collect_vec() // T_T
-                .into_iter()
-            {
-                mod_list.mods[i].enabled = true;
+            let enabled = selected.into_iter().map(|it| it.0).collect_vec();
+            for (i, mod_) in mod_list.mods.iter_mut().enumerate() {
+                mod_.enabled = enabled.contains(&i);
             }
 
             cfg.store()?;
