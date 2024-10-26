@@ -673,7 +673,7 @@ dependencies = [
 
 [[package]]
 name = "noitad-cli"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "clap",
  "color-eyre",
@@ -689,7 +689,7 @@ dependencies = [
 
 [[package]]
 name = "noitad-lib"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "better_default",
  "chrono",
