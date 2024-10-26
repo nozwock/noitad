@@ -1,5 +1,7 @@
 mod cli;
 
+use std::path::PathBuf;
+
 use clap::Parser;
 use cli::NoitdCli;
 use color_eyre::{
@@ -10,6 +12,12 @@ use itertools::Itertools;
 use noitad_lib::{config::Config, defines::APP_CONFIG_DIR, log::RotatingWriter};
 use tracing::debug;
 use tracing_subscriber::{fmt, prelude::*, EnvFilter};
+
+fn get_save_dir(cfg: &Config) -> Result<PathBuf> {
+    cfg.noita_path
+        .save_dir()
+        .context("Couldn't find Noita's save directory.")
+}
 
 fn main() -> Result<()> {
     let (non_blocking, _guard) = tracing_appender::non_blocking(RotatingWriter::new(
@@ -28,15 +36,7 @@ fn main() -> Result<()> {
 
     match cli.command {
         cli::Command::Add { profile } => {
-            cfg.profiles.add_profile(
-                &profile,
-                &cfg.noita_path
-                    .save_dir()
-                    .context("Couldn't find Noita's save directory.")?,
-            )?;
-            if cfg.active_profile.is_none() {
-                cfg.active_profile = Some(profile.clone())
-            }
+            cfg.profiles.add_profile(&profile, get_save_dir(&cfg)?)?;
             cfg.store()?;
             eprintln!("Added profile '{}'", profile);
         }
@@ -64,6 +64,13 @@ fn main() -> Result<()> {
                     })
                     .join("\n")
             );
+        }
+        cli::Command::Switch { profile } => {
+            cfg.profiles
+                .overwrite_with_profile(&profile, get_save_dir(&cfg)?)?;
+            cfg.active_profile = Some(profile.to_owned());
+            cfg.store()?;
+            eprintln!("Switched to profile '{}'", profile);
         }
         cli::Command::Edit { profile } => todo!(),
     };
