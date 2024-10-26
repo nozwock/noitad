@@ -83,9 +83,7 @@ impl ModProfiles {
     fn write_profile(&mut self, profile: impl AsRef<str>, mod_list: &Mods) -> Result<PathBuf> {
         fs::create_dir_all(MOD_PROFILES_DIR.as_path())?;
         let path = MOD_PROFILES_DIR.join(ModProfiles::get_profile_file_path(profile));
-        fs::OpenOptions::new()
-            .write(true)
-            .open(&path)?
+        fs::File::create(&path)?
             .write_fmt(format_args!("{}", quick_xml::se::to_string(mod_list)?))?;
 
         Ok(path)
