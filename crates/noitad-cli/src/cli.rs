@@ -21,13 +21,13 @@ pub enum Command {
         profile: String,
     },
     /// Remove an existing mod profile
-    #[command()]
+    #[command(alias = "rm")]
     Remove {
         #[arg()]
         profile: String,
     },
     /// List all existing mod profiles
-    #[command()]
+    #[command(alias = "ls")]
     List,
     /// Switch to an existing mod profile
     #[command()]
