@@ -1,3 +1,5 @@
+pub mod mod_config;
+
 use std::path::PathBuf;
 
 use serde::{Deserialize, Serialize};
