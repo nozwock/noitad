@@ -1,6 +1,6 @@
 mod cli;
 
-use std::path::PathBuf;
+use std::{fmt, path::PathBuf};
 
 use clap::Parser;
 use cli::NoitdCli;
@@ -8,15 +8,27 @@ use color_eyre::{
     eyre::{bail, ContextCompat, Result},
     owo_colors::OwoColorize,
 };
+use inquire::MultiSelect;
 use itertools::Itertools;
-use noitad_lib::{config::Config, defines::APP_CONFIG_DIR, log::RotatingWriter};
+use noitad_lib::{
+    config::Config, defines::APP_CONFIG_DIR, log::RotatingWriter, noita::mod_config::Mods,
+};
 use tracing::debug;
-use tracing_subscriber::{fmt, prelude::*, EnvFilter};
+use tracing_subscriber::{prelude::*, EnvFilter};
 
 fn get_save_dir(cfg: &Config) -> Result<PathBuf> {
     cfg.noita_path
         .save_dir()
         .context("Couldn't find Noita's save directory.")
+}
+
+macro_rules! exit_on_err {
+    ($res:expr) => {{
+        match $res {
+            Ok(value) => value,
+            Err(_) => std::process::exit(1),
+        }
+    }};
 }
 
 fn main() -> Result<()> {
@@ -25,8 +37,9 @@ fn main() -> Result<()> {
         APP_CONFIG_DIR.join("logs"),
         "noitd.log",
     )?);
+
     tracing_subscriber::registry()
-        .with(fmt::layer().with_writer(non_blocking))
+        .with(tracing_subscriber::fmt::layer().with_writer(non_blocking))
         .with(EnvFilter::from_default_env())
         .init();
 
@@ -79,8 +92,71 @@ fn main() -> Result<()> {
 
             eprintln!("Switched to profile '{}'", profile);
         }
-        cli::Command::Edit { profile } => todo!(),
+        cli::Command::Edit { mut profile } => {
+            if profile.is_none() {
+                profile = cfg.active_profile.clone();
+            }
+            let profile = profile.context("No profile is available for edit")?;
+
+            let mut mod_list = cfg.profiles.get_profile(&profile)?;
+            let noita_save_dir = get_save_dir(&cfg)?;
+            if cfg.active_profile_sync {
+                mod_list.sync_with_noita(&noita_save_dir)?;
+            }
+
+            let (content, enabled) = ModsDisplay::get_vec_from(&mod_list);
+
+            let selected = exit_on_err!(MultiSelect::new(">", content)
+                .with_default(&enabled)
+                .with_formatter(&|it| format!("{} mods are enabled in total", it.len()))
+                .prompt());
+
+            for i in selected
+                .into_iter()
+                .map(|it| it.0)
+                .collect_vec() // T_T
+                .into_iter()
+            {
+                mod_list.mods[i].enabled = true;
+            }
+
+            cfg.store()?;
+
+            if cfg.active_profile.as_ref() == Some(&profile) {
+                mod_list.overwrite_noita_mod_list(&noita_save_dir)?;
+            }
+        }
     };
 
     Ok(())
+}
+
+/// All this because inquire wouldn't let me just let me give it a closure where I can return a string from the vec's items.
+#[derive(Debug, Clone)]
+struct ModsDisplay<'a>(usize, &'a str, bool);
+
+impl<'a> ModsDisplay<'a> {
+    fn get_vec_from(value: &'a Mods) -> (Vec<Self>, Vec<usize>) {
+        let mut content = vec![];
+        let mut enabled = vec![];
+
+        for (i, mod_) in value.mods.iter().enumerate() {
+            content.push(Self(i, mod_.name.as_str(), mod_.workshop_item_id == 0));
+            if mod_.enabled {
+                enabled.push(i);
+            }
+        }
+
+        (content, enabled)
+    }
+}
+
+impl fmt::Display for ModsDisplay<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_fmt(format_args!(
+            "{} ({})",
+            self.1,
+            if self.2 { "Local" } else { "Steam" }
+        ))
+    }
 }
