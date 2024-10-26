@@ -1,4 +1,5 @@
 mod cli;
+mod utils;
 
 use std::{fmt, path::PathBuf};
 
@@ -15,6 +16,7 @@ use noitad_lib::{
 };
 use tracing::debug;
 use tracing_subscriber::{prelude::*, EnvFilter};
+use utils::group_equal_by_key;
 
 fn get_save_dir(cfg: &Config) -> Result<PathBuf> {
     cfg.noita_path
@@ -110,6 +112,19 @@ fn main() -> Result<()> {
                 .with_default(&enabled)
                 .with_formatter(&|it| format!("{} mods are enabled in total", it.len()))
                 .prompt());
+
+            let dup_modids = group_equal_by_key(&selected, |it| it.1)
+                .values()
+                .filter(|it| it.len() > 1)
+                .map(|it| it[0].1)
+                .collect_vec();
+
+            if dup_modids.len() > 0 {
+                bail!(
+                    "Multiple mods with same id were enabled:\n{}",
+                    dup_modids.into_iter().join("\n")
+                )
+            }
 
             for i in selected
                 .into_iter()
