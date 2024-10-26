@@ -73,16 +73,16 @@ impl ModProfiles {
             )
         })?;
 
-        fs::remove_file(MOD_PROFILES_DIR.join(ModProfiles::get_profile_file_path(profile)))?;
+        fs::remove_file(ModProfiles::get_profile_file_path(profile))?;
 
         Ok(())
     }
-    fn get_profile_file_path(profile: impl AsRef<str>) -> String {
-        format!("{}.xml", profile.as_ref())
+    fn get_profile_file_path(profile: impl AsRef<str>) -> PathBuf {
+        MOD_PROFILES_DIR.join(format!("{}.xml", profile.as_ref()))
     }
     fn write_profile(&mut self, profile: impl AsRef<str>, mod_list: &Mods) -> Result<PathBuf> {
         fs::create_dir_all(MOD_PROFILES_DIR.as_path())?;
-        let path = MOD_PROFILES_DIR.join(ModProfiles::get_profile_file_path(profile));
+        let path = ModProfiles::get_profile_file_path(profile);
         fs::File::create(&path)?
             .write_fmt(format_args!("{}", quick_xml::se::to_string(mod_list)?))?;
 
