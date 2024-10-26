@@ -1,11 +1,14 @@
 pub mod mod_config;
 
-use std::path::PathBuf;
+use std::{collections::HashMap, path::PathBuf};
 
 use serde::{Deserialize, Serialize};
 use walkdir::WalkDir;
 
 use crate::defines::NOITA_STEAM_ID;
+
+/// HashMap of profile names and filepath to their mod_config file.
+pub type ModProfiles = HashMap<String, PathBuf>;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GamePath {
