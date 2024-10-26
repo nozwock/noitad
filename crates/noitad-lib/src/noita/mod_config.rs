@@ -35,18 +35,18 @@ impl Mods {
         )?)
         .map_err(eyre::Report::msg)
     }
-    pub fn sync_with_noita(mod_list: &mut Mods, noita_save_dir: impl AsRef<Path>) -> Result<()> {
+    pub fn sync_with_noita(&mut self, noita_save_dir: impl AsRef<Path>) -> Result<()> {
         let noita_mod_list = Self::from_noita(noita_save_dir.as_ref())?;
 
         let mut new_mods = vec![];
 
-        let len = mod_list.mods.len();
+        let len = self.mods.len();
         for i in 0..len {
             for mod_ in noita_mod_list.mods.iter() {
-                if mod_list.mods[i].name == mod_.name {
-                    mod_list.mods[i].enabled = mod_.enabled;
-                    mod_list.mods[i].settings_fold_open = mod_.settings_fold_open;
-                    mod_list.mods[i].workshop_item_id = mod_.workshop_item_id;
+                if self.mods[i].name == mod_.name {
+                    self.mods[i].enabled = mod_.enabled;
+                    self.mods[i].settings_fold_open = mod_.settings_fold_open;
+                    self.mods[i].workshop_item_id = mod_.workshop_item_id;
                 } else {
                     new_mods.push(mod_);
                 }
@@ -54,17 +54,14 @@ impl Mods {
         }
 
         for mod_ in new_mods.into_iter() {
-            mod_list.mods.push(mod_.to_owned());
+            self.mods.push(mod_.to_owned());
         }
 
         Ok(())
     }
-    pub fn overwrite_noita_mod_list(
-        mod_list: &Mods,
-        noita_save_dir: impl AsRef<Path>,
-    ) -> Result<()> {
+    pub fn overwrite_noita_mod_list(&self, noita_save_dir: impl AsRef<Path>) -> Result<()> {
         fs::File::create(noita_save_dir.as_ref().join("mod_config.xml"))?
-            .write_fmt(format_args!("{}", quick_xml::se::to_string(mod_list)?))?;
+            .write_fmt(format_args!("{}", quick_xml::se::to_string(self)?))?;
 
         Ok(())
     }
