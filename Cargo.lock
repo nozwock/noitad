@@ -112,6 +112,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "better_default"
+version = "1.0.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7b9a5040dce49a7642c97ccb1ae59567098967b5d52c29773f1299a42d23bb39"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
 name = "bitflags"
 version = "2.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -570,6 +581,7 @@ dependencies = [
 name = "noitad-lib"
 version = "0.1.0"
 dependencies = [
+ "better_default",
  "chrono",
  "color-eyre",
  "confy",
