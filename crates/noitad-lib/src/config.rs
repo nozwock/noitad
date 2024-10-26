@@ -1,3 +1,4 @@
+use better_default::Default;
 use color_eyre::eyre::{self, Result};
 use serde::{Deserialize, Serialize};
 
@@ -7,10 +8,14 @@ use crate::{
 };
 
 #[derive(Debug, Default, Clone, Serialize, Deserialize)]
+#[serde(default)]
 pub struct Config {
     pub noita_path: NoitaPath,
     pub profiles: ModProfiles,
     pub active_profile: Option<String>,
+    /// Sync it with noita's `mod_config.xml`
+    #[default(true)]
+    pub active_profile_sync: bool,
 }
 
 impl Config {
