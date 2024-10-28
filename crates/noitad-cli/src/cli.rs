@@ -41,4 +41,19 @@ pub enum Command {
         #[arg(short, long)]
         profile: Option<String>,
     },
+    #[command(arg_required_else_help = true)]
+    Config {
+        #[command(subcommand)]
+        command: Option<ConfigCommand>,
+        /// Print the path to the config file
+        #[arg(short, long)]
+        path: bool,
+    },
+}
+
+#[derive(Debug, Clone, Subcommand)]
+pub enum ConfigCommand {
+    /// Set the path to the game's location
+    #[command()]
+    NoitaPath,
 }

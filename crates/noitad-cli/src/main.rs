@@ -1,10 +1,10 @@
 mod cli;
 mod utils;
 
-use std::{fmt, path::PathBuf};
+use std::{fmt, path::PathBuf, str::FromStr};
 
 use clap::Parser;
-use cli::NoitdCli;
+use cli::{ConfigCommand, NoitdCli};
 use color_eyre::{
     eyre::{bail, ContextCompat, Result},
     owo_colors::OwoColorize,
@@ -12,7 +12,11 @@ use color_eyre::{
 use inquire::MultiSelect;
 use itertools::Itertools;
 use noitad_lib::{
-    config::Config, defines::APP_CONFIG_DIR, log::RotatingWriter, noita::mod_config::Mods,
+    config::Config,
+    defines::{APP_CONFIG_DIR, APP_CONFIG_PATH},
+    ext::PathExt,
+    log::RotatingWriter,
+    noita::{mod_config::Mods, GamePath, NoitaPath},
 };
 use tracing::debug;
 use tracing_subscriber::{prelude::*, EnvFilter};
@@ -138,6 +142,53 @@ fn main() -> Result<()> {
 
             if cfg.active_profile.as_ref() == Some(&profile) {
                 mod_list.overwrite_noita_mod_list(&noita_save_dir)?;
+            }
+        }
+        cli::Command::Config { command, path } => {
+            if path {
+                eprintln!("{}", APP_CONFIG_PATH.to_string_lossy());
+                return Ok(());
+            }
+
+            match command {
+                Some(ConfigCommand::NoitaPath) => {
+                    let resolver = exit_on_err!(inquire::Select::new(
+                        "Pick one of the path resolver",
+                        vec!["Steam", "Manual"],
+                    )
+                    .prompt());
+
+                    match resolver {
+                        "Steam" => {
+                            cfg.noita_path = NoitaPath::Steam;
+                        }
+                        "Manual" => {
+                            let game_root = PathBuf::from_str(&exit_on_err!(inquire::Text::new(
+                                "Game's root directory path:"
+                            )
+                            .prompt()))?
+                            .try_is_dir()?;
+
+                            let mut manual = GamePath {
+                                game_root,
+                                ..Default::default()
+                            };
+
+                            #[cfg(unix)]
+                            {
+                                let wine_prefix = PathBuf::from_str(&exit_on_err!(
+                                    inquire::Text::new("Game's wine prefix path:").prompt()
+                                ))?
+                                .try_is_dir()?;
+                                manual.wine_prefix = Some(wine_prefix);
+                            }
+
+                            cfg.store()?;
+                        }
+                        _ => unreachable!(),
+                    }
+                }
+                _ => {}
             }
         }
     };
