@@ -106,10 +106,10 @@ impl ModProfiles {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct GamePath {
-    game_root: PathBuf,
-    wine_prefix: Option<PathBuf>,
+    pub game_root: PathBuf,
+    pub wine_prefix: Option<PathBuf>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
