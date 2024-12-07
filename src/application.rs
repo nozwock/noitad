@@ -1,8 +1,8 @@
 use gettextrs::gettext;
 use tracing::{debug, info};
 
-use gtk::prelude::*;
-use gtk::subclass::prelude::*;
+use adw::prelude::*;
+use adw::subclass::prelude::*;
 use gtk::{gdk, gio, glib};
 
 use crate::config::{APP_ID, PKGDATADIR, PROFILE, VERSION};
@@ -22,7 +22,7 @@ mod imp {
     impl ObjectSubclass for NoitadApplication {
         const NAME: &'static str = "NoitadApplication";
         type Type = super::NoitadApplication;
-        type ParentType = gtk::Application;
+        type ParentType = adw::Application;
     }
 
     impl ObjectImpl for NoitadApplication {}
@@ -62,11 +62,12 @@ mod imp {
     }
 
     impl GtkApplicationImpl for NoitadApplication {}
+    impl AdwApplicationImpl for NoitadApplication {}
 }
 
 glib::wrapper! {
     pub struct NoitadApplication(ObjectSubclass<imp::NoitadApplication>)
-        @extends gio::Application, gtk::Application,
+        @extends gio::Application, gtk::Application, adw::Application,
         @implements gio::ActionMap, gio::ActionGroup;
 }
 
@@ -113,21 +114,16 @@ impl NoitadApplication {
     }
 
     fn show_about_dialog(&self) {
-        let dialog = gtk::AboutDialog::builder()
-            .logo_icon_name(APP_ID)
-            // Insert your license of choice here
-            // .license_type(gtk::License::MitX11)
-            // Insert your website here
-            // .website("https://gitlab.gnome.org/bilelmoussaoui/noitad/")
+        let dialog = adw::AboutDialog::builder()
+            .application_icon(APP_ID)
+            .application_name("Noitad")
+            .developer_name("nozwock")
             .version(VERSION)
-            .transient_for(&self.main_window())
+            .issue_url("https://github.com/nozwock/noitad/issues")
             .translator_credits(gettext("translator-credits"))
-            .modal(true)
-            .authors(vec!["nozwock"])
-            .artists(vec!["nozwock"])
             .build();
 
-        dialog.present();
+        dialog.present(Some(&self.main_window()));
     }
 
     pub fn run(&self) -> glib::ExitCode {

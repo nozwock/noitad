@@ -1,5 +1,5 @@
-use gtk::prelude::*;
-use gtk::subclass::prelude::*;
+use adw::prelude::*;
+use adw::subclass::prelude::*;
 use gtk::{gio, glib};
 
 use crate::application::NoitadApplication;
@@ -12,7 +12,7 @@ mod imp {
     #[template(resource = "/io/github/nozwock/noitad/ui/window.ui")]
     pub struct NoitadApplicationWindow {
         #[template_child]
-        pub headerbar: TemplateChild<gtk::HeaderBar>,
+        pub headerbar: TemplateChild<adw::HeaderBar>,
         pub settings: gio::Settings,
     }
 
@@ -29,7 +29,7 @@ mod imp {
     impl ObjectSubclass for NoitadApplicationWindow {
         const NAME: &'static str = "NoitadApplicationWindow";
         type Type = super::NoitadApplicationWindow;
-        type ParentType = gtk::ApplicationWindow;
+        type ParentType = adw::ApplicationWindow;
 
         fn class_init(klass: &mut Self::Class) {
             klass.bind_template();
@@ -70,11 +70,12 @@ mod imp {
     }
 
     impl ApplicationWindowImpl for NoitadApplicationWindow {}
+    impl AdwApplicationWindowImpl for NoitadApplicationWindow {}
 }
 
 glib::wrapper! {
     pub struct NoitadApplicationWindow(ObjectSubclass<imp::NoitadApplicationWindow>)
-        @extends gtk::Widget, gtk::Window, gtk::ApplicationWindow,
+        @extends gtk::Widget, gtk::Window, gtk::ApplicationWindow, adw::ApplicationWindow,
         @implements gio::ActionMap, gio::ActionGroup, gtk::Root;
 }
 
