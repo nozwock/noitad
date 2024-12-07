@@ -1,5 +1,6 @@
 use adw::prelude::*;
 use adw::subclass::prelude::*;
+use gtk::glib::clone;
 use gtk::{gio, glib, NoSelection, SignalListItemFactory, StringList};
 use itertools::Itertools;
 use noitad_lib::config::Config;
@@ -144,7 +145,7 @@ impl NoitadApplicationWindow {
         let stack = imp.stack.get();
         let dropdown_profile = imp.dropdown_profile.get();
 
-        // Temporary for testing
+        // note: Temporary for testing
         stack.set_visible_child_name("main_page");
 
         let cfg = self.get_config();
@@ -215,7 +216,65 @@ impl NoitadApplicationWindow {
         mod_list.set_factory(Some(&factory));
     }
 
-    fn get_config(&self) -> Config {
+    pub fn get_config(&self) -> Config {
+        // fix: This creates a new copy, we need to modify the one in the struct instead
         self.imp().config.borrow().clone().unwrap()
+    }
+
+    pub fn profile_new(&self) {
+        fn dialog_profile() -> (adw::AlertDialog, adw::EntryRow) {
+            let dialog = adw::AlertDialog::builder()
+                .close_response("cancel")
+                .heading("New Profile")
+                .build();
+
+            dialog.add_responses(&[("cancel", "Cancel"), ("create", "Create")]);
+            dialog.set_response_appearance("create", adw::ResponseAppearance::Suggested);
+            dialog.set_response_enabled("create", false);
+
+            let box_ = gtk::Box::builder()
+                .margin_top(12)
+                .spacing(24)
+                .orientation(gtk::Orientation::Vertical)
+                .build();
+            let list_box = gtk::ListBox::builder()
+                .selection_mode(gtk::SelectionMode::None)
+                .build();
+            list_box.add_css_class("boxed-list");
+            let entry_row = adw::EntryRow::builder().title("Profile Name").build();
+
+            entry_row.connect_text_notify(clone!(
+                #[weak]
+                dialog,
+                move |entry| {
+                    let text = entry.text();
+                    if !text.is_empty() {
+                        dialog.set_response_enabled("create", true);
+                    } else {
+                        dialog.set_response_enabled("create", false);
+                    }
+                }
+            ));
+
+            list_box.append(&entry_row);
+            box_.append(&list_box);
+            dialog.set_extra_child(Some(&box_));
+
+            dialog.set_focus(Some(&entry_row));
+
+            (dialog, entry_row)
+        }
+
+        let (dialog, entry_row) = dialog_profile();
+        let mut cfg = self.get_config();
+        dialog.choose(self, None::<&gio::Cancellable>, move |resp| {
+            let text = entry_row.text();
+            if resp.as_str() == "create" && !text.is_empty() {
+                let save_dir = cfg.noita_path.save_dir().unwrap();
+                cfg.profiles.add_profile(text, save_dir).unwrap();
+            }
+        });
+
+        // todo: Toast for failure/success
     }
 }

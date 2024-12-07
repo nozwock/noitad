@@ -45,9 +45,9 @@ template $NoitadApplicationWindow: Adw.ApplicationWindow {
                     title: "No Profile Exists";
 
                     Button button_main_profile_new {
-                        label: "Create Profile";
                         halign: center;
-
+                        label: "Create Profile";
+                        // todo: Need to be able to move to the next page once a profile is successfully created, so validation is needed
                         styles [
                             "suggested-action",
                             "pill"
@@ -71,6 +71,7 @@ template $NoitadApplicationWindow: Adw.ApplicationWindow {
                         Button button_profile_new {
                             name: "circular-plus";
                             icon-name: "list-add-symbolic";
+                            action-name: "app.profile-new";
                         }
 
                         styles [
@@ -91,17 +92,11 @@ template $NoitadApplicationWindow: Adw.ApplicationWindow {
                         maximum-size: 576;
 
                         ListView mod_list {
-                            styles [
-                                "navigation-sidebar"// "boxed-list"
+                            styles [ "navigation-sidebar"// "boxed-list"
                             ]
                         }
                     }
                 }
-
-                // Adw.StatusPage {
-                //     vexpand: true;
-                //     description: "Mod list will be here";
-                // }
             };
         }
     }
