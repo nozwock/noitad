@@ -1117,8 +1117,10 @@ dependencies = [
 name = "noitad"
 version = "0.1.0"
 dependencies = [
+ "color-eyre",
  "gettext-rs",
  "gtk4",
+ "itertools",
  "libadwaita",
  "noitad-lib",
  "tracing",
