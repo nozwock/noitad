@@ -2,7 +2,7 @@ use gtk::prelude::*;
 use gtk::subclass::prelude::*;
 use gtk::{gio, glib};
 
-use crate::application::ExampleApplication;
+use crate::application::NoitadApplication;
 use crate::config::{APP_ID, PROFILE};
 
 mod imp {
@@ -10,13 +10,13 @@ mod imp {
 
     #[derive(Debug, gtk::CompositeTemplate)]
     #[template(resource = "/io/github/nozwock/noitad/ui/window.ui")]
-    pub struct ExampleApplicationWindow {
+    pub struct NoitadApplicationWindow {
         #[template_child]
         pub headerbar: TemplateChild<gtk::HeaderBar>,
         pub settings: gio::Settings,
     }
 
-    impl Default for ExampleApplicationWindow {
+    impl Default for NoitadApplicationWindow {
         fn default() -> Self {
             Self {
                 headerbar: TemplateChild::default(),
@@ -26,9 +26,9 @@ mod imp {
     }
 
     #[glib::object_subclass]
-    impl ObjectSubclass for ExampleApplicationWindow {
-        const NAME: &'static str = "ExampleApplicationWindow";
-        type Type = super::ExampleApplicationWindow;
+    impl ObjectSubclass for NoitadApplicationWindow {
+        const NAME: &'static str = "NoitadApplicationWindow";
+        type Type = super::NoitadApplicationWindow;
         type ParentType = gtk::ApplicationWindow;
 
         fn class_init(klass: &mut Self::Class) {
@@ -41,7 +41,7 @@ mod imp {
         }
     }
 
-    impl ObjectImpl for ExampleApplicationWindow {
+    impl ObjectImpl for NoitadApplicationWindow {
         fn constructed(&self) {
             self.parent_constructed();
             let obj = self.obj();
@@ -56,8 +56,8 @@ mod imp {
         }
     }
 
-    impl WidgetImpl for ExampleApplicationWindow {}
-    impl WindowImpl for ExampleApplicationWindow {
+    impl WidgetImpl for NoitadApplicationWindow {}
+    impl WindowImpl for NoitadApplicationWindow {
         // Save window state on delete event
         fn close_request(&self) -> glib::Propagation {
             if let Err(err) = self.obj().save_window_size() {
@@ -69,17 +69,17 @@ mod imp {
         }
     }
 
-    impl ApplicationWindowImpl for ExampleApplicationWindow {}
+    impl ApplicationWindowImpl for NoitadApplicationWindow {}
 }
 
 glib::wrapper! {
-    pub struct ExampleApplicationWindow(ObjectSubclass<imp::ExampleApplicationWindow>)
+    pub struct NoitadApplicationWindow(ObjectSubclass<imp::NoitadApplicationWindow>)
         @extends gtk::Widget, gtk::Window, gtk::ApplicationWindow,
         @implements gio::ActionMap, gio::ActionGroup, gtk::Root;
 }
 
-impl ExampleApplicationWindow {
-    pub fn new(app: &ExampleApplication) -> Self {
+impl NoitadApplicationWindow {
+    pub fn new(app: &NoitadApplication) -> Self {
         glib::Object::builder().property("application", app).build()
     }
 

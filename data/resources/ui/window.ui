@@ -16,7 +16,7 @@
       </item>
     </section>
   </menu>
-  <template class="ExampleApplicationWindow" parent="GtkApplicationWindow">
+  <template class="NoitadApplicationWindow" parent="GtkApplicationWindow">
     <child type="titlebar">
       <object class="GtkHeaderBar" id="headerbar">
         <child type="end">
@@ -33,7 +33,7 @@
       <object class="GtkLabel" id="label">
         <property name="label" translatable="yes">Hello world!</property>
         <style>
-          <class name="title-header"/>
+          <class name="title-header" />
         </style>
       </object>
     </child>
