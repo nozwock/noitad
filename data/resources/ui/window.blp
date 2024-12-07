@@ -21,20 +21,82 @@ menu primary_menu {
 }
 
 template $NoitadApplicationWindow: Adw.ApplicationWindow {
-    Adw.ToolbarView {
-        [top]
-        Adw.HeaderBar headerbar {
-            [end]
-            MenuButton {
-                icon-name: 'open-menu-symbolic';
-                menu-model: primary_menu;
-                primary: true;
-            }
+    default-width: 640;
+    default-height: 540;
+
+    Stack stack {
+        transition-type: crossfade;
+
+        StackPage {
+            child: Adw.ToolbarView {
+                [top]
+                Adw.HeaderBar {
+                    [end]
+                    MenuButton {
+                        icon-name: 'open-menu-symbolic';
+                        menu-model: primary_menu;
+                        primary: true;
+                    }
+                }
+
+                Adw.StatusPage {
+                    vexpand: true;
+                    icon-name: "folder-templates-symbolic";
+                    title: "No Profile Exists";
+
+                    Button button_main_profile_new {
+                        label: "Create Profile";
+                        halign: center;
+
+                        styles [
+                            "suggested-action",
+                            "pill"
+                        ]
+                    }
+                }
+            };
         }
 
-        Adw.StatusPage home_page {
-            vexpand: true;
-            title: "Some Page";
+        StackPage {
+            name: "main_page";
+
+            child: Adw.ToolbarView {
+                [top]
+                Adw.HeaderBar {
+                    Box {
+                        DropDown dropdown_profile {
+                            enable-search: true;
+                        }
+
+                        Button button_profile_new {
+                            name: "circular-plus";
+                            icon-name: "list-add-symbolic";
+                        }
+
+                        styles [
+                            "linked"
+                        ]
+                    }
+
+                    [end]
+                    MenuButton {
+                        icon-name: 'open-menu-symbolic';
+                        menu-model: primary_menu;
+                        primary: true;
+                    }
+                }
+
+                Adw.Clamp {
+                    maximum-size: 576;
+
+                    ListView mod_list {}
+                }
+
+                // Adw.StatusPage {
+                //     vexpand: true;
+                //     description: "Mod list will be here";
+                // }
+            };
         }
     }
 }

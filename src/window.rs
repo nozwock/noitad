@@ -1,26 +1,40 @@
 use adw::prelude::*;
 use adw::subclass::prelude::*;
-use gtk::{gio, glib};
+use gtk::{gio, glib, StringList};
+use itertools::Itertools;
+use noitad_lib::config::Config;
+use noitad_lib::defines::APP_CONFIG_PATH;
 
 use crate::application::NoitadApplication;
 use crate::config::{APP_ID, PROFILE};
+use crate::models::mod_::ModObject;
 
 mod imp {
+    use std::cell::RefCell;
+
     use super::*;
 
     #[derive(Debug, gtk::CompositeTemplate)]
     #[template(resource = "/io/github/nozwock/noitad/ui/window.ui")]
     pub struct NoitadApplicationWindow {
         #[template_child]
-        pub headerbar: TemplateChild<adw::HeaderBar>,
+        pub stack: TemplateChild<gtk::Stack>,
+        #[template_child]
+        pub dropdown_profile: TemplateChild<gtk::DropDown>,
+        #[template_child]
+        pub mod_list: TemplateChild<gtk::ListView>,
         pub settings: gio::Settings,
+        pub config: RefCell<Option<Config>>,
     }
 
     impl Default for NoitadApplicationWindow {
         fn default() -> Self {
             Self {
-                headerbar: TemplateChild::default(),
+                stack: Default::default(),
+                dropdown_profile: Default::default(),
+                mod_list: Default::default(),
                 settings: gio::Settings::new(APP_ID),
+                config: Default::default(),
             }
         }
     }
@@ -51,8 +65,13 @@ mod imp {
                 obj.add_css_class("devel");
             }
 
+            if let Ok(cfg) = Config::load() {
+                self.config.replace(Some(cfg));
+            }
+
             // Load latest window state
             obj.load_window_size();
+            obj.setup_ui();
         }
     }
 
@@ -63,6 +82,8 @@ mod imp {
             if let Err(err) = self.obj().save_window_size() {
                 tracing::warn!("Failed to save window state, {}", &err);
             }
+
+            _ = dbg!(self.config.borrow().clone().unwrap().store());
 
             // Pass close request on to the parent
             self.parent_close_request()
@@ -110,5 +131,48 @@ impl NoitadApplicationWindow {
         if is_maximized {
             self.maximize();
         }
+    }
+
+    fn setup_ui(&self) {
+        let imp = self.imp();
+
+        // dbg!(APP_CONFIG_PATH.as_path());
+
+        let stack = imp.stack.downcast_ref::<gtk::Stack>().unwrap();
+        let dropdown_profile = imp
+            .dropdown_profile
+            .downcast_ref::<gtk::DropDown>()
+            .unwrap();
+        let mod_list = imp.mod_list.downcast_ref::<gtk::ListView>().unwrap();
+
+        // Temporary for testing
+        stack.set_visible_child_name("main_page");
+
+        let cfg = imp.config.borrow().clone().unwrap();
+
+        let profiles = cfg
+            .profiles
+            .keys()
+            .into_iter()
+            .map(|it| it.as_str())
+            .collect_vec();
+        dbg!(&profiles);
+
+        let string_list = StringList::new(&profiles);
+        dropdown_profile.set_model(Some(&string_list));
+
+        let model = gio::ListStore::new::<ModObject>();
+        let mods = cfg
+            .profiles
+            .get_profile(cfg.active_profile.as_ref().unwrap())
+            .unwrap();
+        let mod_objs = mods
+            .mods
+            .iter()
+            .map(|it| ModObject::new(it.enabled, it.name.clone(), it.workshop_item_id == 0))
+            .collect_vec();
+        model.extend_from_slice(&mod_objs);
+
+        // todo: Create factory for mod_list
     }
 }
