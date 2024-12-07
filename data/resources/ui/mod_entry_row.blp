@@ -1,0 +1,35 @@
+using Gtk 4.0;
+using Adw 1;
+
+template $NoitadModEntryRow: Adw.ActionRow {
+    activatable: true;
+
+    accessibility {
+        labelled-by: mod_name;
+    }
+
+    [prefix]
+    Box contents {
+        orientation: horizontal;
+
+        CheckButton enabled {}
+
+        Label mod_name {
+            hexpand: true;
+            margin-start: 6;
+            xalign: 0;
+            wrap: true;
+            wrap-mode: word_char;
+        }
+    }
+
+    [suffix]
+    Label is_local {}
+
+    // Image is_local {
+    //     icon-name: "dialog-question-symbolic";
+    //     margin-start: 6;
+    //     hexpand: true;
+    //     halign: end;
+    // }
+}

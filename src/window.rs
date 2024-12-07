@@ -1,6 +1,6 @@
 use adw::prelude::*;
 use adw::subclass::prelude::*;
-use gtk::{gio, glib, StringList};
+use gtk::{gio, glib, NoSelection, SignalListItemFactory, StringList};
 use itertools::Itertools;
 use noitad_lib::config::Config;
 use noitad_lib::defines::APP_CONFIG_PATH;
@@ -8,6 +8,7 @@ use noitad_lib::defines::APP_CONFIG_PATH;
 use crate::application::NoitadApplication;
 use crate::config::{APP_ID, PROFILE};
 use crate::models::mod_::ModObject;
+use crate::widgets::mod_entry_row::ModEntryRow;
 
 mod imp {
     use std::cell::RefCell;
@@ -46,6 +47,8 @@ mod imp {
         type ParentType = adw::ApplicationWindow;
 
         fn class_init(klass: &mut Self::Class) {
+            ModEntryRow::ensure_type();
+
             klass.bind_template();
         }
 
@@ -143,7 +146,6 @@ impl NoitadApplicationWindow {
             .dropdown_profile
             .downcast_ref::<gtk::DropDown>()
             .unwrap();
-        let mod_list = imp.mod_list.downcast_ref::<gtk::ListView>().unwrap();
 
         // Temporary for testing
         stack.set_visible_child_name("main_page");
@@ -161,6 +163,8 @@ impl NoitadApplicationWindow {
         let string_list = StringList::new(&profiles);
         dropdown_profile.set_model(Some(&string_list));
 
+        let mod_list = imp.mod_list.downcast_ref::<gtk::ListView>().unwrap();
+
         let model = gio::ListStore::new::<ModObject>();
         let mods = cfg
             .profiles
@@ -173,6 +177,44 @@ impl NoitadApplicationWindow {
             .collect_vec();
         model.extend_from_slice(&mod_objs);
 
-        // todo: Create factory for mod_list
+        let selection_model = NoSelection::new(Some(model));
+        mod_list.set_model(Some(&selection_model));
+
+        let factory = SignalListItemFactory::new();
+        factory.connect_setup(move |_, list_item| {
+            let mod_row = ModEntryRow::new();
+            list_item
+                .downcast_ref::<gtk::ListItem>()
+                .unwrap()
+                .set_child(Some(&mod_row));
+        });
+        factory.connect_bind(move |_, list_item| {
+            let mod_object = list_item
+                .downcast_ref::<gtk::ListItem>()
+                .unwrap()
+                .item()
+                .and_downcast::<ModObject>()
+                .unwrap();
+
+            let mod_row = list_item
+                .downcast_ref::<gtk::ListItem>()
+                .unwrap()
+                .child()
+                .and_downcast::<ModEntryRow>()
+                .unwrap();
+
+            mod_row.bind(&mod_object);
+        });
+        factory.connect_unbind(move |_, list_item| {
+            let mod_row = list_item
+                .downcast_ref::<gtk::ListItem>()
+                .unwrap()
+                .child()
+                .and_downcast::<ModEntryRow>()
+                .unwrap();
+
+            mod_row.unbind();
+        });
+        mod_list.set_factory(Some(&factory));
     }
 }

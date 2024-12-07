@@ -86,10 +86,16 @@ template $NoitadApplicationWindow: Adw.ApplicationWindow {
                     }
                 }
 
-                Adw.Clamp {
-                    maximum-size: 576;
+                ScrolledWindow {
+                    Adw.Clamp {
+                        maximum-size: 576;
 
-                    ListView mod_list {}
+                        ListView mod_list {
+                            styles [
+                                "navigation-sidebar"// "boxed-list"
+                            ]
+                        }
+                    }
                 }
 
                 // Adw.StatusPage {
