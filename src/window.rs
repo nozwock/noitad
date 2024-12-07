@@ -86,7 +86,7 @@ mod imp {
                 tracing::warn!("Failed to save window state, {}", &err);
             }
 
-            _ = dbg!(self.config.borrow().clone().unwrap().store());
+            _ = self.obj().get_config();
 
             // Pass close request on to the parent
             self.parent_close_request()
@@ -147,7 +147,7 @@ impl NoitadApplicationWindow {
         // Temporary for testing
         stack.set_visible_child_name("main_page");
 
-        let cfg = imp.config.borrow().clone().unwrap();
+        let cfg = self.get_config();
 
         let profiles = cfg
             .profiles
@@ -213,5 +213,9 @@ impl NoitadApplicationWindow {
             mod_row.unbind();
         });
         mod_list.set_factory(Some(&factory));
+    }
+
+    fn get_config(&self) -> Config {
+        self.imp().config.borrow().clone().unwrap()
     }
 }
