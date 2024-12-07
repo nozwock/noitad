@@ -11,3 +11,5 @@
 /vendor
 /.vscode
 **/src/bin/_*.rs
+
+/subprojects/blueprint-compiler
