@@ -9,6 +9,7 @@
     ],
     "command": "noitad",
     "finish-args": [
+        "--filesystem=host",
         "--share=network",
         "--share=ipc",
         "--socket=fallback-x11",
