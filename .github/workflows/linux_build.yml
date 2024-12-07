@@ -30,4 +30,4 @@ jobs:
       - name: Setup eframe dependencies
         run: sudo apt-get install libxcb-render0-dev libxcb-shape0-dev libxcb-xfixes0-dev libspeechd-dev libxkbcommon-dev libssl-dev
       - name: Build
-        run: cargo build --verbose --target x86_64-unknown-linux-gnu
+        run: cargo build -p noitad-cli --verbose --target x86_64-unknown-linux-gnu

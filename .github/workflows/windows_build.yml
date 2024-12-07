@@ -1,8 +1,8 @@
 on:
   push:
-    paths: "**.rs"
+    paths: ["**.rs"]
   pull_request:
-    paths: "**.rs"
+    paths: ["**.rs"]
   workflow_dispatch:
 
 name: Windows Build
@@ -24,4 +24,4 @@ jobs:
         with:
           target: x86_64-pc-windows-msvc
       - name: Build
-        run: cargo build --verbose --target x86_64-pc-windows-msvc
+        run: cargo build -p noitad-cli --verbose --target x86_64-pc-windows-msvc
