@@ -1,0 +1,6 @@
+data/io.github.nozwock.noitad.desktop.in.in
+data/io.github.nozwock.noitad.gschema.xml.in
+data/io.github.nozwock.noitad.metainfo.xml.in.in
+data/resources/ui/shortcuts.ui
+data/resources/ui/window.ui
+src/application.rs

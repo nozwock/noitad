@@ -28,3 +28,18 @@ tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 tracing-appender = "0.2"
 chrono = "0.4"
 better_default = "1.0"
+
+[package]
+# In build-aux, runtime 47 with llvm18 seems to give issues like rust-stable/.../47 or clang not found
+name = "noitad"
+version = "0.1.0"
+authors = ["nozwock"]
+edition = "2021"
+
+[dependencies]
+noitad-lib = { path = "crates/noitad-lib" }
+gettext-rs = { version = "0.7", features = ["gettext-system"] }
+gtk = { version = "0.9", package = "gtk4", features = ["v4_8"] }
+adw = { version = "0.7", package = "libadwaita", features = ["v1_5"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
