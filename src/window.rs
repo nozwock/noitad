@@ -141,11 +141,8 @@ impl NoitadApplicationWindow {
 
         // dbg!(APP_CONFIG_PATH.as_path());
 
-        let stack = imp.stack.downcast_ref::<gtk::Stack>().unwrap();
-        let dropdown_profile = imp
-            .dropdown_profile
-            .downcast_ref::<gtk::DropDown>()
-            .unwrap();
+        let stack = imp.stack.get();
+        let dropdown_profile = imp.dropdown_profile.get();
 
         // Temporary for testing
         stack.set_visible_child_name("main_page");
@@ -163,7 +160,7 @@ impl NoitadApplicationWindow {
         let string_list = StringList::new(&profiles);
         dropdown_profile.set_model(Some(&string_list));
 
-        let mod_list = imp.mod_list.downcast_ref::<gtk::ListView>().unwrap();
+        let mod_list = imp.mod_list.get();
 
         let model = gio::ListStore::new::<ModObject>();
         let mods = cfg
