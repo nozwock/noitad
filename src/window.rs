@@ -259,8 +259,6 @@ impl NoitadApplicationWindow {
             box_.append(&list_box);
             dialog.set_extra_child(Some(&box_));
 
-            dialog.set_focus(Some(&entry_row));
-
             (dialog, entry_row)
         }
 

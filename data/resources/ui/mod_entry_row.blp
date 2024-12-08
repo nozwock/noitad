@@ -24,7 +24,11 @@ template $NoitadModEntryRow: Adw.ActionRow {
     }
 
     [suffix]
-    Label is_local {}
+    Label is_local {
+        styles [
+            "dim-label"
+        ]
+    }
 
     // Image is_local {
     //     icon-name: "dialog-question-symbolic";
