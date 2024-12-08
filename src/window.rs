@@ -1,3 +1,5 @@
+use std::rc::Rc;
+
 use adw::prelude::*;
 use adw::subclass::prelude::*;
 use gtk::glib::clone;
@@ -26,7 +28,7 @@ mod imp {
         #[template_child]
         pub mod_list: TemplateChild<gtk::ListView>,
         pub settings: gio::Settings,
-        pub config: RefCell<Option<Config>>,
+        pub config: Rc<RefCell<Config>>,
     }
 
     impl Default for NoitadApplicationWindow {
@@ -70,7 +72,7 @@ mod imp {
             }
 
             if let Ok(cfg) = Config::load() {
-                self.config.replace(Some(cfg));
+                self.config.replace(cfg);
             }
 
             // Load latest window state
@@ -87,7 +89,7 @@ mod imp {
                 tracing::warn!("Failed to save window state, {}", &err);
             }
 
-            _ = self.obj().get_config();
+            _ = dbg!(dbg!(self.config.borrow()).store());
 
             // Pass close request on to the parent
             self.parent_close_request()
@@ -148,9 +150,10 @@ impl NoitadApplicationWindow {
         // note: Temporary for testing
         stack.set_visible_child_name("main_page");
 
-        let cfg = self.get_config();
+        let cfg = imp.config.clone();
+        let cfg_ref = cfg.borrow();
 
-        let profiles = cfg
+        let profiles = cfg_ref
             .profiles
             .keys()
             .into_iter()
@@ -164,9 +167,9 @@ impl NoitadApplicationWindow {
         let mod_list = imp.mod_list.get();
 
         let model = gio::ListStore::new::<ModObject>();
-        let mods = cfg
+        let mods = cfg_ref
             .profiles
-            .get_profile(cfg.active_profile.as_ref().unwrap())
+            .get_profile(cfg_ref.active_profile.as_ref().unwrap())
             .unwrap();
         let mod_objs = mods
             .mods
@@ -216,11 +219,6 @@ impl NoitadApplicationWindow {
         mod_list.set_factory(Some(&factory));
     }
 
-    pub fn get_config(&self) -> Config {
-        // fix: This creates a new copy, we need to modify the one in the struct instead
-        self.imp().config.borrow().clone().unwrap()
-    }
-
     pub fn profile_new(&self) {
         fn dialog_profile() -> (adw::AlertDialog, adw::EntryRow) {
             let dialog = adw::AlertDialog::builder()
@@ -266,12 +264,16 @@ impl NoitadApplicationWindow {
         }
 
         let (dialog, entry_row) = dialog_profile();
-        let mut cfg = self.get_config();
+        let cfg = self.imp().config.clone();
+        let save_dir = cfg.borrow().noita_path.save_dir().unwrap();
         dialog.choose(self, None::<&gio::Cancellable>, move |resp| {
             let text = entry_row.text();
             if resp.as_str() == "create" && !text.is_empty() {
-                let save_dir = cfg.noita_path.save_dir().unwrap();
-                cfg.profiles.add_profile(text, save_dir).unwrap();
+                cfg.as_ref()
+                    .borrow_mut()
+                    .profiles
+                    .add_profile(text, save_dir)
+                    .unwrap();
             }
         });
 
