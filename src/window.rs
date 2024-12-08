@@ -7,6 +7,7 @@ use gtk::{gio, glib, NoSelection, SignalListItemFactory, StringList};
 use itertools::Itertools;
 use noitad_lib::config::Config;
 use noitad_lib::defines::APP_CONFIG_PATH;
+use tracing::error;
 
 use crate::application::NoitadApplication;
 use crate::config::{APP_ID, PROFILE};
@@ -269,11 +270,12 @@ impl NoitadApplicationWindow {
         dialog.choose(self, None::<&gio::Cancellable>, move |resp| {
             let text = entry_row.text();
             if resp.as_str() == "create" && !text.is_empty() {
-                cfg.as_ref()
+                _ = cfg
+                    .as_ref()
                     .borrow_mut()
                     .profiles
                     .add_profile(text, save_dir)
-                    .unwrap();
+                    .inspect_err(|e| error!(%e));
             }
         });
 
