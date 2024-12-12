@@ -60,6 +60,19 @@ impl ConfigObject {
             .property("active_profile_sync", config.active_profile_sync)
             .build()
     }
+
+    pub fn set_config(&self, config: config::Config) {
+        self.set_properties(&[
+            ("noita_path", &NoitaPath(config.noita_path).to_value()),
+            ("profiles", &ModProfiles(config.profiles).to_value()),
+            ("active_profile", &config.active_profile),
+            ("active_profile_sync", &config.active_profile_sync),
+        ]);
+    }
+
+    pub fn into_simple_config(&self) -> config::Config {
+        self.clone().into()
+    }
 }
 
 impl Default for ConfigObject {
