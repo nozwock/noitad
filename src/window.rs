@@ -10,7 +10,7 @@ use tracing::error;
 
 use crate::application::NoitadApplication;
 use crate::config::{APP_ID, PROFILE};
-use crate::models::mod_::ModObject;
+use crate::objects::noita_mod::ModObject;
 use crate::widgets::mod_entry_row::ModEntryRow;
 
 mod imp {

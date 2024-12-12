@@ -1,7 +1,7 @@
 mod application;
 #[rustfmt::skip]
 mod config;
-mod models;
+mod objects;
 mod widgets;
 mod window;
 

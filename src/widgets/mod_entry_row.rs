@@ -1,7 +1,7 @@
 use adw::subclass::prelude::*;
 use gtk::{glib, prelude::ObjectExt};
 
-use crate::models::mod_::ModObject;
+use crate::objects::noita_mod::ModObject;
 
 mod imp {
     use std::cell::RefCell;
