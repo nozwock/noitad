@@ -4,7 +4,6 @@ use fs_err as fs;
 use std::{
     collections::HashMap,
     io::Write,
-    ops::{Deref, DerefMut},
     path::{Path, PathBuf},
 };
 
@@ -13,25 +12,16 @@ use mod_config::Mods;
 use serde::{Deserialize, Serialize};
 use walkdir::WalkDir;
 
-use crate::defines::{MOD_PROFILES_DIR, NOITA_STEAM_ID};
+use crate::{
+    defines::{MOD_PROFILES_DIR, NOITA_STEAM_ID},
+    impl_deref_for_newtype,
+};
 
 /// HashMap of profile names and filepath to their mod_config file.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct ModProfiles(pub HashMap<String, PathBuf>);
 
-impl Deref for ModProfiles {
-    type Target = HashMap<String, PathBuf>;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-impl DerefMut for ModProfiles {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.0
-    }
-}
+impl_deref_for_newtype!(ModProfiles, HashMap<String, PathBuf>);
 
 impl ModProfiles {
     pub fn add_profile(
