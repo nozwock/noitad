@@ -6,7 +6,6 @@ use gtk::glib::clone;
 use gtk::{gio, glib, NoSelection, SignalListItemFactory, StringList};
 use itertools::Itertools;
 use noitad_lib::config::Config;
-use noitad_lib::defines::APP_CONFIG_PATH;
 use tracing::error;
 
 use crate::application::NoitadApplication;
@@ -90,7 +89,7 @@ mod imp {
                 tracing::warn!("Failed to save window state, {}", &err);
             }
 
-            _ = dbg!(dbg!(self.config.borrow()).store());
+            _ = dbg!(dbg!(self.config.as_ref().borrow()).store());
 
             // Pass close request on to the parent
             self.parent_close_request()
@@ -152,7 +151,7 @@ impl NoitadApplicationWindow {
         stack.set_visible_child_name("main_page");
 
         let cfg = imp.config.clone();
-        let cfg_ref = cfg.borrow();
+        let cfg_ref = cfg.as_ref().borrow();
 
         let profiles = cfg_ref
             .profiles
@@ -264,7 +263,7 @@ impl NoitadApplicationWindow {
 
         let (dialog, entry_row) = dialog_profile();
         let cfg = self.imp().config.clone();
-        let save_dir = cfg.borrow().noita_path.save_dir().unwrap();
+        let save_dir = cfg.as_ref().borrow().noita_path.save_dir().unwrap();
         dialog.choose(self, None::<&gio::Cancellable>, move |resp| {
             let text = entry_row.text();
             if resp.as_str() == "create" && !text.is_empty() {
