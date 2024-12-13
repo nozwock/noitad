@@ -248,8 +248,6 @@ impl NoitadApplicationWindow {
             mod_list_model.extend_from_slice(&mod_objs);
         }
 
-        // fix: ListBox retains the previously used space even when there's no item...
-        // Something do to with ScrolledWindow perhaps, look into it
         mod_list.bind_model(Some(&mod_list_model), move |obj| {
             let item = obj.downcast_ref::<ModObject>().unwrap();
             let row = adw::SwitchRow::builder().title(item.name()).build();

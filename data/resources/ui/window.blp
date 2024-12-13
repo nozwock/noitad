@@ -93,16 +93,19 @@ template $NoitadApplicationWindow: Adw.ApplicationWindow {
                     Adw.Clamp {
                         maximum-size: 576;
 
-                        ListBox mod_list {
-                            selection-mode: none;
-                            margin-end: 12;
-                            margin-start: 12;
-                            margin-top: 12;
-                            margin-bottom: 12;
+                        Adw.PreferencesGroup {
+                            valign: center; // Or, on ListBox if not under PrefGroup
+                            ListBox mod_list {
+                                selection-mode: none;
+                                margin-end: 12;
+                                margin-start: 12;
+                                margin-top: 12;
+                                margin-bottom: 12;
 
-                            styles [
-                                "boxed-list"
-                            ]
+                                styles [
+                                    "boxed-list"
+                                ]
+                            }
                         }
                     }
                 }
