@@ -88,11 +88,20 @@ template $NoitadApplicationWindow: Adw.ApplicationWindow {
                 }
 
                 ScrolledWindow {
+                    hscrollbar-policy: never;
+
                     Adw.Clamp {
                         maximum-size: 576;
 
-                        ListView mod_list {
-                            styles [ "navigation-sidebar"// "boxed-list"
+                        ListBox mod_list {
+                            selection-mode: none;
+                            margin-end: 12;
+                            margin-start: 12;
+                            margin-top: 12;
+                            margin-bottom: 12;
+
+                            styles [
+                                "boxed-list"
                             ]
                         }
                     }

@@ -2,7 +2,7 @@ use adw::prelude::*;
 use adw::subclass::prelude::*;
 use gtk::gio::ListStore;
 use gtk::glib::clone;
-use gtk::{gio, glib, NoSelection, SignalListItemFactory, StringObject};
+use gtk::{gio, glib, StringObject};
 use itertools::Itertools;
 use noitad_lib::config::Config;
 use tracing::error;
@@ -11,7 +11,6 @@ use crate::application::NoitadApplication;
 use crate::config::{APP_ID, PROFILE};
 use crate::objects::config::ModProfiles;
 use crate::objects::noita_mod::ModObject;
-use crate::widgets::mod_entry_row::ModEntryRow;
 
 mod imp {
     use crate::objects::config::ConfigObject;
@@ -26,7 +25,7 @@ mod imp {
         #[template_child]
         pub dropdown_profile: TemplateChild<gtk::DropDown>,
         #[template_child]
-        pub mod_list: TemplateChild<gtk::ListView>,
+        pub mod_list: TemplateChild<gtk::ListBox>,
         pub settings: gio::Settings,
         pub config: ConfigObject,
     }
@@ -50,8 +49,6 @@ mod imp {
         type ParentType = adw::ApplicationWindow;
 
         fn class_init(klass: &mut Self::Class) {
-            ModEntryRow::ensure_type();
-
             klass.bind_template();
         }
 
@@ -144,6 +141,7 @@ impl NoitadApplicationWindow {
 
         let stack = imp.stack.get();
         let dropdown_profile = imp.dropdown_profile.get();
+        let mod_list = imp.mod_list.get();
 
         // note: Temporary for testing
         stack.set_visible_child_name("main_page");
@@ -200,6 +198,8 @@ impl NoitadApplicationWindow {
         ));
         dropdown_profile.set_model(Some(&profiles_model));
 
+        let mod_list_model = gio::ListStore::new::<ModObject>();
+
         if let Some(active_profile) = cfg.active_profile() {
             dropdown_profile.set_selected(
                 cfg.profiles()
@@ -219,67 +219,48 @@ impl NoitadApplicationWindow {
         dropdown_profile.connect_selected_item_notify(clone!(
             #[weak]
             cfg,
+            #[weak]
+            mod_list_model,
             move |dropdown| {
                 let s = dropdown.selected_item().unwrap();
                 cfg.set_active_profile(s.downcast_ref::<StringObject>().unwrap().string());
+
+                // Update mod_list
+                mod_list_model.remove_all();
+                let mod_objs = profile_mod_objs(&cfg.profiles(), cfg.active_profile().unwrap());
+                mod_list_model.extend_from_slice(&mod_objs);
             }
         ));
 
-        // todo: Update mod_list on profile dropdown selection
+        fn profile_mod_objs(profiles: &ModProfiles, active: impl AsRef<str>) -> Vec<ModObject> {
+            let mods = profiles.get_profile(active.as_ref()).unwrap();
+            let mod_objs = mods
+                .mods
+                .iter()
+                .map(|it| ModObject::new(it.enabled, it.name.clone(), it.workshop_item_id == 0))
+                .collect_vec();
 
-        let mod_list = imp.mod_list.get();
+            mod_objs
+        }
 
-        let model = gio::ListStore::new::<ModObject>();
-        let mods = cfg
-            .profiles()
-            .get_profile(cfg.active_profile().unwrap())
-            .unwrap();
-        let mod_objs = mods
-            .mods
-            .iter()
-            .map(|it| ModObject::new(it.enabled, it.name.clone(), it.workshop_item_id == 0))
-            .collect_vec();
-        model.extend_from_slice(&mod_objs);
+        if let Some(active_profile) = cfg.active_profile() {
+            let mod_objs = profile_mod_objs(&cfg.profiles(), active_profile);
+            mod_list_model.extend_from_slice(&mod_objs);
+        }
 
-        let selection_model = NoSelection::new(Some(model));
-        mod_list.set_model(Some(&selection_model));
+        // fix: ListBox retains the previously used space even when there's no item...
+        // Something do to with ScrolledWindow perhaps, look into it
+        mod_list.bind_model(Some(&mod_list_model), move |obj| {
+            let item = obj.downcast_ref::<ModObject>().unwrap();
+            let row = adw::SwitchRow::builder().title(item.name()).build();
 
-        let factory = SignalListItemFactory::new();
-        factory.connect_setup(move |_, list_item| {
-            let mod_row = ModEntryRow::new();
-            list_item
-                .downcast_ref::<gtk::ListItem>()
-                .unwrap()
-                .set_child(Some(&mod_row));
+            item.bind_property("enabled", &row, "active")
+                .bidirectional()
+                .sync_create()
+                .build();
+
+            row.into()
         });
-        factory.connect_bind(move |_, list_item| {
-            let mod_object = list_item
-                .downcast_ref::<gtk::ListItem>()
-                .unwrap()
-                .item()
-                .and_downcast::<ModObject>()
-                .unwrap();
-
-            let mod_row = list_item
-                .downcast_ref::<gtk::ListItem>()
-                .unwrap()
-                .child()
-                .and_downcast::<ModEntryRow>()
-                .unwrap();
-
-            mod_row.bind(&mod_object);
-        });
-        factory.connect_unbind(move |_, list_item| {
-            let mod_row = list_item
-                .downcast_ref::<gtk::ListItem>()
-                .unwrap()
-                .child()
-                .and_downcast::<ModEntryRow>()
-                .unwrap();
-
-            mod_row.unbind();
-        });
-        mod_list.set_factory(Some(&factory));
     }
 
     pub fn profile_new(&self) {
