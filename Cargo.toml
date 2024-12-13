@@ -39,8 +39,9 @@ edition = "2021"
 [dependencies]
 noitad-lib = { path = "crates/noitad-lib" }
 gettext-rs = { version = "0.7", features = ["gettext-system"] }
-gtk = { version = "0.9", package = "gtk4", features = ["v4_14"] }
-adw = { version = "0.7", package = "libadwaita", features = ["v1_5"] }
+# note: Latest deps are in gnome nightly runtime, not the current latest stable.
+gtk = { version = "0.9", package = "gtk4", features = ["gnome_47"] }
+adw = { version = "0.7", package = "libadwaita", features = ["v1_6"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 
