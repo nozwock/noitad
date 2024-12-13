@@ -1,15 +1,15 @@
-use std::borrow::BorrowMut;
-
 use adw::prelude::*;
 use adw::subclass::prelude::*;
+use gtk::gio::ListStore;
 use gtk::glib::clone;
-use gtk::{gio, glib, NoSelection, SignalListItemFactory, StringList};
+use gtk::{gio, glib, NoSelection, SignalListItemFactory, StringObject};
 use itertools::Itertools;
 use noitad_lib::config::Config;
 use tracing::error;
 
 use crate::application::NoitadApplication;
 use crate::config::{APP_ID, PROFILE};
+use crate::objects::config::ModProfiles;
 use crate::objects::noita_mod::ModObject;
 use crate::widgets::mod_entry_row::ModEntryRow;
 
@@ -142,8 +142,6 @@ impl NoitadApplicationWindow {
     fn setup_ui(&self) {
         let imp = self.imp();
 
-        // dbg!(APP_CONFIG_PATH.as_path());
-
         let stack = imp.stack.get();
         let dropdown_profile = imp.dropdown_profile.get();
 
@@ -152,16 +150,82 @@ impl NoitadApplicationWindow {
 
         let cfg = &imp.config;
 
-        let profiles = cfg.profiles();
-        let profiles = profiles
-            .keys()
-            .into_iter()
-            .map(|it| it.as_str())
-            .collect_vec();
-        dbg!(&profiles);
+        fn sync_profiles_model(profiles: &ModProfiles, model: &ListStore) {
+            model.retain(|s| {
+                profiles.contains_key(s.downcast_ref::<StringObject>().unwrap().string().as_str())
+            });
 
-        let string_list = StringList::new(&profiles);
-        dropdown_profile.set_model(Some(&string_list));
+            // Need to keep a list of these StringObjects stored in the model,
+            // since this `model.find` seems to work on object id rather than value
+            let mut item_store = vec![];
+            {
+                let mut i = 0;
+                while let Some(obj) = model.item(i) {
+                    item_store.push(obj.downcast::<StringObject>().unwrap());
+                    i = i + 1;
+                }
+
+                profiles.keys().for_each(|s| {
+                    if item_store
+                        .iter()
+                        .find(|obj| obj.string().as_str() == s)
+                        .is_none()
+                    {
+                        item_store.push(StringObject::new(s));
+                    }
+                });
+            }
+
+            // It's important that items are sorted in the same manner throughout all these collections...
+            item_store
+                .iter()
+                .sorted_by(|a, b| Ord::cmp(a.string().as_str(), b.string().as_str()))
+                .enumerate()
+                .for_each(|(i, s)| {
+                    if model.find(s).is_none() {
+                        model.splice(i as u32, 0, &[s.clone()]);
+                    }
+                });
+        }
+
+        let profiles_model = ListStore::new::<StringObject>();
+        sync_profiles_model(&cfg.profiles(), &profiles_model);
+        cfg.connect_profiles_notify(clone!(
+            #[weak]
+            profiles_model,
+            move |cfg| {
+                let profiles = cfg.profiles();
+                sync_profiles_model(&profiles, &profiles_model);
+            }
+        ));
+        dropdown_profile.set_model(Some(&profiles_model));
+
+        if let Some(active_profile) = cfg.active_profile() {
+            dropdown_profile.set_selected(
+                cfg.profiles()
+                    .keys()
+                    .sorted()
+                    .enumerate()
+                    .find_map(|(i, s)| {
+                        if s.as_str() == active_profile {
+                            Some(i)
+                        } else {
+                            None
+                        }
+                    })
+                    .unwrap() as u32,
+            );
+        }
+        dropdown_profile.connect_selected_item_notify(clone!(
+            #[weak]
+            cfg,
+            move |dropdown| {
+                let s = dropdown.selected_item().unwrap();
+                cfg.set_active_profile(s.downcast_ref::<StringObject>().unwrap().string());
+            }
+        ));
+
+        // todo: Update mod_list on profile dropdown selection
 
         let mod_list = imp.mod_list.get();
 
