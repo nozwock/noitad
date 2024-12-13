@@ -1,3 +1,7 @@
+use std::borrow::Borrow;
+use std::cell::RefMut;
+use std::collections::HashMap;
+
 use adw::prelude::*;
 use adw::subclass::prelude::*;
 use gtk::gio::ListStore;
@@ -5,7 +9,7 @@ use gtk::glib::clone;
 use gtk::{gio, glib, StringObject};
 use itertools::Itertools;
 use noitad_lib::config::Config;
-use tracing::error;
+use tracing::{debug, error};
 
 use crate::application::NoitadApplication;
 use crate::config::{APP_ID, PROFILE};
@@ -13,6 +17,8 @@ use crate::objects::config::ModProfiles;
 use crate::objects::noita_mod::ModObject;
 
 mod imp {
+    use std::{cell::RefCell, collections::HashMap, rc::Rc};
+
     use crate::objects::config::ConfigObject;
 
     use super::*;
@@ -28,6 +34,8 @@ mod imp {
         pub mod_list: TemplateChild<gtk::ListBox>,
         pub settings: gio::Settings,
         pub config: ConfigObject,
+
+        pub mod_list_models: Rc<RefCell<HashMap<String, Vec<ModObject>>>>,
     }
 
     impl Default for NoitadApplicationWindow {
@@ -38,6 +46,7 @@ mod imp {
                 mod_list: Default::default(),
                 settings: gio::Settings::new(APP_ID),
                 config: Default::default(),
+                mod_list_models: Default::default(),
             }
         }
     }
@@ -142,6 +151,7 @@ impl NoitadApplicationWindow {
         let stack = imp.stack.get();
         let dropdown_profile = imp.dropdown_profile.get();
         let mod_list = imp.mod_list.get();
+        let mod_list_models = imp.mod_list_models.clone();
 
         // note: Temporary for testing
         stack.set_visible_child_name("main_page");
@@ -221,30 +231,71 @@ impl NoitadApplicationWindow {
             cfg,
             #[weak]
             mod_list_model,
+            #[weak]
+            mod_list_models,
             move |dropdown| {
-                let s = dropdown.selected_item().unwrap();
-                cfg.set_active_profile(s.downcast_ref::<StringObject>().unwrap().string());
+                let str_obj = dropdown.selected_item().unwrap();
+                let active_profile = str_obj.downcast_ref::<StringObject>().unwrap().string();
+                cfg.set_active_profile(active_profile.as_str());
 
                 // Update mod_list
+                let is_model_cached = mod_list_models
+                    .as_ref()
+                    .borrow()
+                    .contains_key(active_profile.as_str());
+
+                debug!(
+                    name = active_profile.as_str(),
+                    is_model_cached, "Selected profile"
+                );
+
+                let mod_objs = if is_model_cached {
+                    mod_list_models
+                        .as_ref()
+                        .borrow()
+                        .get(active_profile.as_str())
+                        .unwrap()
+                        .into_iter()
+                        .map(|it| it.clone())
+                        .collect_vec()
+                } else {
+                    let mod_objs = profile_mod_objs(
+                        &cfg.profiles(),
+                        &active_profile,
+                        mod_list_models.as_ref().borrow_mut(),
+                    );
+
+                    mod_objs
+                };
+
                 mod_list_model.remove_all();
-                let mod_objs = profile_mod_objs(&cfg.profiles(), cfg.active_profile().unwrap());
                 mod_list_model.extend_from_slice(&mod_objs);
             }
         ));
 
-        fn profile_mod_objs(profiles: &ModProfiles, active: impl AsRef<str>) -> Vec<ModObject> {
+        fn profile_mod_objs(
+            profiles: &ModProfiles,
+            active: impl AsRef<str>,
+            mut mods_store: RefMut<HashMap<String, Vec<ModObject>>>,
+        ) -> Vec<ModObject> {
             let mods = profiles.get_profile(active.as_ref()).unwrap();
             let mod_objs = mods
                 .mods
                 .iter()
                 .map(|it| ModObject::new(it.enabled, it.name.clone(), it.workshop_item_id == 0))
                 .collect_vec();
+            mods_store.insert(active.as_ref().to_owned(), mod_objs.clone());
 
             mod_objs
         }
 
+        // todo: This also needs to be when the first profile is created
         if let Some(active_profile) = cfg.active_profile() {
-            let mod_objs = profile_mod_objs(&cfg.profiles(), active_profile);
+            let mod_objs = profile_mod_objs(
+                &cfg.profiles(),
+                &active_profile,
+                mod_list_models.as_ref().borrow_mut(),
+            );
             mod_list_model.extend_from_slice(&mod_objs);
         }
 
