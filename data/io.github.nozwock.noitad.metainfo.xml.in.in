@@ -5,14 +5,16 @@
   <metadata_license>CC0</metadata_license>
   <!-- Insert your license of choice here -->
   <!-- <project_license>MIT</project_license> -->
-  <name>Noitad</name>
+  <name>Noita'd</name>
   <summary>Write a GTK + Rust application</summary>
   <description>
-    <p>A boilerplate template for GTK + Rust. It uses Meson as a build system and has flatpak support by default.</p>
+    <p>A boilerplate template for GTK + Rust. It uses Meson as a build system and has flatpak
+      support by default.</p>
   </description>
   <screenshots>
     <screenshot type="default">
-      <image>https://gitlab.gnome.org/bilelmoussaoui/noitad/raw/master/data/resources/screenshots/screenshot1.png</image>
+      <image>
+        https://gitlab.gnome.org/bilelmoussaoui/noitad/raw/master/data/resources/screenshots/screenshot1.png</image>
       <caption>Main window</caption>
     </screenshot>
   </screenshots>
@@ -30,12 +32,12 @@
     <release version="0.1.0" date="2019-07-11" />
   </releases>
   <kudos>
-     <!--
+    <!--
        GNOME Software kudos:
        https://gitlab.gnome.org/GNOME/gnome-software/-/blob/main/doc/kudos.md
      -->
-     <kudo>ModernToolkit</kudo>
-     <kudo>HiDpiIcon</kudo>
+    <kudo>ModernToolkit</kudo>
+    <kudo>HiDpiIcon</kudo>
   </kudos>
   <!-- developer_name tag deprecated with Appstream 1.0 -->
   <developer_name translate="no">nozwock</developer_name>
@@ -43,14 +45,14 @@
   <developer id="gnome.org">
     <name translate="no">nozwock</name>
   </developer>
-  <!-- 
+  <!--
     Branding colors:
     https://docs.flathub.org/docs/for-app-authors/metainfo-guidelines/#brand-color
   -->
   <branding>
     <color type="primary" scheme_preference="light">#ff00ff</color>
     <color type="primary" scheme_preference="dark">#993d3d</color>
-  </branding>  
+  </branding>
   <update_contact></update_contact>
   <translation type="gettext">@gettext-package@</translation>
   <launchable type="desktop-id">@app-id@.desktop</launchable>

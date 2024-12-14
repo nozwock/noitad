@@ -1,5 +1,5 @@
 [Desktop Entry]
-Name=Noitad
+Name=Noita'd
 Comment=Write a GTK + Rust application
 Type=Application
 Exec=noitad

@@ -1,10 +1,7 @@
 option(
   'profile',
   type: 'combo',
-  choices: [
-    'default',
-    'development'
-  ],
+  choices: ['default', 'development'],
   value: 'default',
-  description: 'The build profile for Noitad. One of "default" or "development".'
+  description: 'The build profile for Noita\'d. One of "default" or "development".',
 )

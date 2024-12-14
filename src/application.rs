@@ -117,7 +117,7 @@ impl NoitadApplication {
     fn show_about_dialog(&self) {
         let dialog = adw::AboutDialog::builder()
             .application_icon(APP_ID)
-            .application_name("Noitad")
+            .application_name("Noita'd")
             .developer_name("nozwock")
             .version(VERSION)
             .issue_url("https://github.com/nozwock/noitad/issues")
@@ -128,7 +128,7 @@ impl NoitadApplication {
     }
 
     pub fn run(&self) -> glib::ExitCode {
-        info!("Noitad ({})", APP_ID);
+        info!("Noita'd ({})", APP_ID);
         info!("Version: {} ({})", VERSION, PROFILE);
         info!("Datadir: {}", PKGDATADIR);
 
