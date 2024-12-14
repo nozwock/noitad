@@ -6,4 +6,7 @@
     <file compressed="true" preprocess="xml-stripblanks">ui/window.ui</file>
     <file compressed="true">style.css</file>
   </gresource>
+  <gresource prefix="/io/github/nozwock/noitad/icons/scalable/actions/">
+    <file preprocess="xml-stripblanks" alias="checkmark-small-symbolic.svg">../icons/actions/checkmark-small-symbolic.svg</file>
+  </gresource>
 </gresources>

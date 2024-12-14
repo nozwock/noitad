@@ -1,6 +1,12 @@
 use adw::prelude::*;
 use adw::subclass::prelude::*;
 use gtk::glib;
+use noitad_lib::{impl_deref_for_newtype, noita};
+
+#[derive(Debug, Clone, Default, glib::Boxed)]
+#[boxed_type(name = "NoitadModsBoxed")]
+pub struct Mod(pub noita::mod_config::Mod);
+impl_deref_for_newtype!(Mod, noita::mod_config::Mod);
 
 mod imp {
     use std::cell::RefCell;
@@ -12,13 +18,9 @@ mod imp {
     #[derive(Debug, Default, Properties)]
     #[properties(wrapper_type = super::ModObject)]
     pub struct ModObject {
-        // https://github.com/gtk-rs/gtk-rs-core/issues/930
-        #[property(get, set)]
-        pub enabled: RefCell<bool>,
-        #[property(get, set)]
-        pub name: RefCell<String>,
-        #[property(get, set)]
-        pub is_local: RefCell<bool>,
+        #[property(get, set, name = "enabled", type = bool, member = enabled)]
+        #[property(get, set, name = "name", type = String, member = name)]
+        pub inner: RefCell<Mod>,
     }
 
     #[glib::object_subclass]
@@ -40,12 +42,15 @@ glib::wrapper! {
 }
 
 impl ModObject {
-    pub fn new(enabled: bool, name: String, is_local: bool) -> Self {
-        glib::Object::builder()
-            .property("enabled", enabled)
-            .property("name", name)
-            .property("is_local", is_local)
-            .build()
+    pub fn new(mod_: noita::mod_config::Mod) -> Self {
+        let obj: Self = glib::Object::builder().build();
+        *obj.imp().inner.borrow_mut() = Mod(mod_);
+
+        obj
+    }
+
+    pub fn is_local(&self) -> bool {
+        self.imp().inner.borrow().is_local()
     }
 }
 

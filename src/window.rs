@@ -1,14 +1,17 @@
+use std::borrow::BorrowMut;
 use std::cell::RefMut;
 use std::collections::HashMap;
 
 use adw::prelude::*;
 use adw::subclass::prelude::*;
+use color_eyre::eyre::Result;
 use gtk::gio::ListStore;
 use gtk::glib::clone;
 use gtk::{gio, glib, StringObject};
 use itertools::Itertools;
 use noitad_lib::config::Config;
-use tracing::{debug, error};
+use noitad_lib::noita::mod_config::Mods;
+use tracing::{debug, error, info};
 
 use crate::application::NoitadApplication;
 use crate::config::{APP_ID, PROFILE};
@@ -31,10 +34,13 @@ mod imp {
         pub dropdown_profile: TemplateChild<gtk::DropDown>,
         #[template_child]
         pub mod_list: TemplateChild<gtk::ListBox>,
+        #[template_child]
+        pub button_save_mod_list: TemplateChild<gtk::Button>,
         pub settings: gio::Settings,
         pub config: ConfigObject,
 
         pub mod_list_models: Rc<RefCell<HashMap<String, Vec<ModObject>>>>,
+        pub is_profile_modified: Rc<RefCell<HashMap<String, bool>>>,
     }
 
     impl Default for NoitadApplicationWindow {
@@ -43,9 +49,11 @@ mod imp {
                 stack: Default::default(),
                 dropdown_profile: Default::default(),
                 mod_list: Default::default(),
+                button_save_mod_list: Default::default(),
                 settings: gio::Settings::new(APP_ID),
                 config: Default::default(),
                 mod_list_models: Default::default(),
+                is_profile_modified: Default::default(),
             }
         }
     }
@@ -165,6 +173,48 @@ impl NoitadApplicationWindow {
         let mod_list_model = gio::ListStore::new::<ModObject>();
         self.setup_profile_dropdown(&mod_list_model);
         self.setup_mod_list(&mod_list_model);
+
+        let button_save_mod_list = imp.button_save_mod_list.get();
+        button_save_mod_list.connect_clicked(clone!(
+            #[weak]
+            imp,
+            move |btn| {
+                btn.set_sensitive(false);
+
+                let is_profile_modified = imp.is_profile_modified.clone();
+                let mod_list_models = imp.mod_list_models.clone();
+                let mod_list_models_ref = mod_list_models.borrow();
+                let mut profiles = imp.config.profiles();
+                is_profile_modified
+                    .borrow()
+                    .iter()
+                    .filter_map(
+                        |(profile, is_modified)| {
+                            if *is_modified {
+                                Some(profile)
+                            } else {
+                                None
+                            }
+                        },
+                    )
+                    .map(|profile| {
+                        (
+                            profile,
+                            mod_objs_to_mods(mod_list_models_ref.get(profile).unwrap()),
+                        )
+                    })
+                    .for_each(|(profile, mods)| {
+                        info!(%profile, "Serializing");
+                        _ = profiles
+                            .borrow_mut()
+                            .update_profile(profile, &mods)
+                            .inspect_err(|e| error!(%e));
+                    });
+
+                btn.set_visible(false);
+                btn.set_sensitive(true);
+            }
+        ));
     }
 
     fn setup_profile_dropdown(&self, mod_list_model: &ListStore) {
@@ -290,10 +340,14 @@ impl NoitadApplicationWindow {
 
     fn setup_mod_list(&self, mod_list_model: &ListStore) {
         let imp = self.imp();
-        let cfg = &imp.config;
+        let cfg = imp.config.clone();
 
         let mod_list = imp.mod_list.get();
         let mod_list_models = imp.mod_list_models.clone();
+
+        // todo: Aside from the sync for the active profile with noita mod_config,
+        // there needs to be sync for others where new mod entries are added in those profiles
+        // when they're being loaded
 
         // todo: This also needs to be when the first profile is created
         if let Some(active_profile) = cfg.active_profile() {
@@ -305,6 +359,9 @@ impl NoitadApplicationWindow {
             mod_list_model.extend_from_slice(&mod_objs);
         }
 
+        let button_save_mod_list = imp.button_save_mod_list.get();
+        let is_profile_modified = imp.is_profile_modified.clone();
+
         mod_list.bind_model(Some(mod_list_model), move |obj| {
             let item = obj.downcast_ref::<ModObject>().unwrap();
             let row = adw::SwitchRow::builder().title(item.name()).build();
@@ -313,6 +370,28 @@ impl NoitadApplicationWindow {
                 .bidirectional()
                 .sync_create()
                 .build();
+
+            // Show Apply button if not visible already
+            item.connect_enabled_notify(clone!(
+                #[weak]
+                cfg,
+                #[weak]
+                button_save_mod_list,
+                #[weak]
+                is_profile_modified,
+                move |_| {
+                    if !button_save_mod_list.is_visible() && button_save_mod_list.is_sensitive() {
+                        button_save_mod_list.set_visible(true);
+                    }
+
+                    is_profile_modified
+                        .as_ref()
+                        .borrow_mut()
+                        .entry(cfg.active_profile().unwrap())
+                        .and_modify(|b| *b = true)
+                        .or_insert(true);
+                }
+            ));
 
             row.into()
         });
@@ -326,8 +405,8 @@ impl NoitadApplicationWindow {
         let mods = profiles.get_profile(active.as_ref()).unwrap();
         let mod_objs = mods
             .mods
-            .iter()
-            .map(|it| ModObject::new(it.enabled, it.name.clone(), it.workshop_item_id == 0))
+            .into_iter()
+            .map(|it| ModObject::new(it))
             .collect_vec();
         mods_store.insert(active.as_ref().to_owned(), mod_objs.clone());
 
@@ -391,5 +470,14 @@ impl NoitadApplicationWindow {
         });
 
         // todo: Toast for failure/success
+    }
+}
+
+fn mod_objs_to_mods(mod_objs: &[ModObject]) -> Mods {
+    Mods {
+        mods: mod_objs
+            .iter()
+            .map(|it| it.imp().inner.clone().into_inner().0)
+            .collect_vec(),
     }
 }

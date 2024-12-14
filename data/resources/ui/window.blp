@@ -64,19 +64,40 @@ template $NoitadApplicationWindow: Adw.ApplicationWindow {
                 [top]
                 Adw.HeaderBar {
                     Box {
-                        DropDown dropdown_profile {
-                            enable-search: true;
+                        Box {
+                            DropDown dropdown_profile {
+                                enable-search: true;
+                            }
+
+                            Button button_profile_new {
+                                name: "circular-plus";
+                                icon-name: "list-add-symbolic";
+                                action-name: "win.profile-new";
+                            }
+
+                            styles [
+                                "linked"
+                            ]
                         }
 
-                        Button button_profile_new {
-                            name: "circular-plus";
-                            icon-name: "list-add-symbolic";
-                            action-name: "win.profile-new";
+                        Separator {
+                            styles [
+                                "spacer"
+                            ]
                         }
 
-                        styles [
-                            "linked"
-                        ]
+                        Button button_save_mod_list {
+                            visible: false;
+
+                            Adw.ButtonContent {
+                                label: _("Apply");
+                                icon-name: "checkmark-small-symbolic";
+                            }
+
+                            styles [
+                                "suggested-action",
+                            ]
+                        }
                     }
 
                     [end]

@@ -8,13 +8,13 @@ fn serialize_bool_as_number<S: Serializer>(value: &bool, serializer: S) -> Resul
     serializer.serialize_str(if *value { "1" } else { "0" })
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct Mods {
     #[serde(rename = "Mod")]
     pub mods: Vec<Mod>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct Mod {
     #[serde(rename = "@enabled")]
     #[serde(serialize_with = "serialize_bool_as_number")]
@@ -26,6 +26,12 @@ pub struct Mod {
     pub settings_fold_open: bool,
     #[serde(rename = "@workshop_item_id")]
     pub workshop_item_id: usize,
+}
+
+impl Mod {
+    pub fn is_local(&self) -> bool {
+        self.workshop_item_id == 0
+    }
 }
 
 impl Mods {
