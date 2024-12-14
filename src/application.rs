@@ -93,13 +93,7 @@ impl NoitadApplication {
             })
             .build();
 
-        let action_profile_new = gio::ActionEntry::builder("profile-new")
-            .activate(|app: &Self, _, _| {
-                app.main_window().profile_new();
-            })
-            .build();
-
-        self.add_action_entries([action_quit, action_about, action_profile_new]);
+        self.add_action_entries([action_quit, action_about]);
     }
 
     // Sets up keyboard shortcuts

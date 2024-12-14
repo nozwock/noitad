@@ -83,6 +83,7 @@ mod imp {
 
             // Load latest window state
             obj.load_window_size();
+            obj.setup_gactions();
             obj.setup_ui();
         }
     }
@@ -143,6 +144,16 @@ impl NoitadApplicationWindow {
         if is_maximized {
             self.maximize();
         }
+    }
+
+    fn setup_gactions(&self) {
+        let action_profile_new = gio::ActionEntry::builder("profile-new")
+            .activate(|window: &Self, _, _| {
+                window.present_profile_new_dialog();
+            })
+            .build();
+
+        self.add_action_entries([action_profile_new]);
     }
 
     fn setup_ui(&self) {
@@ -312,7 +323,7 @@ impl NoitadApplicationWindow {
         });
     }
 
-    pub fn profile_new(&self) {
+    pub fn present_profile_new_dialog(&self) {
         fn dialog_profile() -> (adw::AlertDialog, adw::EntryRow) {
             let dialog = adw::AlertDialog::builder()
                 .close_response("cancel")
