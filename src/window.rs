@@ -1,4 +1,3 @@
-use std::borrow::Borrow;
 use std::cell::RefMut;
 use std::collections::HashMap;
 
@@ -159,15 +158,21 @@ impl NoitadApplicationWindow {
     fn setup_ui(&self) {
         let imp = self.imp();
 
-        let stack = imp.stack.get();
-        let dropdown_profile = imp.dropdown_profile.get();
-        let mod_list = imp.mod_list.get();
-        let mod_list_models = imp.mod_list_models.clone();
-
         // note: Temporary for testing
+        let stack = imp.stack.get();
         stack.set_visible_child_name("main_page");
 
+        let mod_list_model = gio::ListStore::new::<ModObject>();
+        self.setup_profile_dropdown(&mod_list_model);
+        self.setup_mod_list(&mod_list_model);
+    }
+
+    fn setup_profile_dropdown(&self, mod_list_model: &ListStore) {
+        let imp = self.imp();
         let cfg = &imp.config;
+
+        let dropdown_profile = imp.dropdown_profile.get();
+        let mod_list_models = imp.mod_list_models.clone();
 
         fn sync_profiles_model(profiles: &ModProfiles, model: &ListStore) {
             model.retain(|s| {
@@ -219,8 +224,6 @@ impl NoitadApplicationWindow {
         ));
         dropdown_profile.set_model(Some(&profiles_model));
 
-        let mod_list_model = gio::ListStore::new::<ModObject>();
-
         if let Some(active_profile) = cfg.active_profile() {
             dropdown_profile.set_selected(
                 cfg.profiles()
@@ -270,7 +273,7 @@ impl NoitadApplicationWindow {
                         .map(|it| it.clone())
                         .collect_vec()
                 } else {
-                    let mod_objs = profile_mod_objs(
+                    let mod_objs = Self::get_profile_mod_objs(
                         &cfg.profiles(),
                         &active_profile,
                         mod_list_models.as_ref().borrow_mut(),
@@ -283,26 +286,18 @@ impl NoitadApplicationWindow {
                 mod_list_model.extend_from_slice(&mod_objs);
             }
         ));
+    }
 
-        fn profile_mod_objs(
-            profiles: &ModProfiles,
-            active: impl AsRef<str>,
-            mut mods_store: RefMut<HashMap<String, Vec<ModObject>>>,
-        ) -> Vec<ModObject> {
-            let mods = profiles.get_profile(active.as_ref()).unwrap();
-            let mod_objs = mods
-                .mods
-                .iter()
-                .map(|it| ModObject::new(it.enabled, it.name.clone(), it.workshop_item_id == 0))
-                .collect_vec();
-            mods_store.insert(active.as_ref().to_owned(), mod_objs.clone());
+    fn setup_mod_list(&self, mod_list_model: &ListStore) {
+        let imp = self.imp();
+        let cfg = &imp.config;
 
-            mod_objs
-        }
+        let mod_list = imp.mod_list.get();
+        let mod_list_models = imp.mod_list_models.clone();
 
         // todo: This also needs to be when the first profile is created
         if let Some(active_profile) = cfg.active_profile() {
-            let mod_objs = profile_mod_objs(
+            let mod_objs = Self::get_profile_mod_objs(
                 &cfg.profiles(),
                 &active_profile,
                 mod_list_models.as_ref().borrow_mut(),
@@ -310,7 +305,7 @@ impl NoitadApplicationWindow {
             mod_list_model.extend_from_slice(&mod_objs);
         }
 
-        mod_list.bind_model(Some(&mod_list_model), move |obj| {
+        mod_list.bind_model(Some(mod_list_model), move |obj| {
             let item = obj.downcast_ref::<ModObject>().unwrap();
             let row = adw::SwitchRow::builder().title(item.name()).build();
 
@@ -321,6 +316,22 @@ impl NoitadApplicationWindow {
 
             row.into()
         });
+    }
+
+    fn get_profile_mod_objs(
+        profiles: &ModProfiles,
+        active: impl AsRef<str>,
+        mut mods_store: RefMut<HashMap<String, Vec<ModObject>>>,
+    ) -> Vec<ModObject> {
+        let mods = profiles.get_profile(active.as_ref()).unwrap();
+        let mod_objs = mods
+            .mods
+            .iter()
+            .map(|it| ModObject::new(it.enabled, it.name.clone(), it.workshop_item_id == 0))
+            .collect_vec();
+        mods_store.insert(active.as_ref().to_owned(), mod_objs.clone());
+
+        mod_objs
     }
 
     pub fn present_profile_new_dialog(&self) {
