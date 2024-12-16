@@ -21,7 +21,7 @@ use crate::objects::noita_mod::ModObject;
 mod imp {
     use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
-    use crate::objects::config::ConfigObject;
+    use crate::{objects::config::ConfigObject, widgets::game_path_pref::GamePathPreference};
 
     use super::*;
 
@@ -52,6 +52,8 @@ mod imp {
         type ParentType = adw::ApplicationWindow;
 
         fn class_init(klass: &mut Self::Class) {
+            GamePathPreference::ensure_type();
+
             klass.bind_template();
         }
 

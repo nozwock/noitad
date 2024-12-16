@@ -1,0 +1,60 @@
+using Gtk 4.0;
+using Adw 1;
+
+template $GamePathPreference: Box {
+    orientation: vertical;
+    spacing: 12;
+
+    Adw.PreferencesGroup {
+        Adw.ComboRow game_path_lookup {
+            title: "Game Path Lookup";
+            subtitle: "How should the app look for the game and mods";
+
+            model: StringList {
+                strings [
+                    "Steam",
+                    "Manual"
+                ]
+            };
+        }
+    }
+
+    Revealer revealer_manual_lookup {
+        transition-type: slide_down;
+
+        Adw.PreferencesGroup {
+            Adw.ActionRow row_game_root_location {
+                title: "Game Root";
+                subtitle: "Select where the game is located";
+                activatable-widget: button_game_root_location;
+
+                [suffix]
+                Button button_game_root_location {
+                    // Could make a DialogButton that'd store the path selection in a state
+                    icon-name: "folder-symbolic";
+                    valign: center;
+
+                    styles [
+                        "flat"
+                    ]
+                }
+            }
+
+            Adw.ActionRow row_wine_prefix_location {
+                title: "Game Wine Prefix";
+                subtitle: "Select location to the game's wine prefix";
+                activatable-widget: button_wine_prefix_location;
+
+                [suffix]
+                Button button_wine_prefix_location {
+                    icon-name: "folder-symbolic";
+                    valign: center;
+
+                    styles [
+                        "flat"
+                    ]
+                }
+            }
+        }
+    }
+}
