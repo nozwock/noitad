@@ -11,12 +11,15 @@ use noitad_lib::noita::{GamePath, NoitaPath};
 use tracing::error;
 
 mod imp {
-    use std::{cell::RefCell, path::PathBuf, rc::Rc};
+    use std::{cell::RefCell, path::PathBuf};
+
+    use glib::Properties;
 
     use super::*;
 
-    #[derive(Debug, Default, gtk::CompositeTemplate)]
+    #[derive(Debug, Default, gtk::CompositeTemplate, Properties)]
     #[template(resource = "/io/github/nozwock/noitad/ui/game_path_pref.ui")]
+    #[properties(wrapper_type = super::GamePathPreference)]
     pub struct GamePathPreference {
         #[template_child]
         pub game_path_lookup: TemplateChild<adw::ComboRow>,
@@ -31,8 +34,10 @@ mod imp {
         #[template_child]
         pub button_wine_prefix_location: TemplateChild<gtk::Button>,
 
-        pub game_root_path: Rc<RefCell<Option<PathBuf>>>,
-        pub wine_prefix_path: Rc<RefCell<Option<PathBuf>>>,
+        #[property(get, set)]
+        pub game_root_path: RefCell<Option<PathBuf>>,
+        #[property(get, set)]
+        pub wine_prefix_path: RefCell<Option<PathBuf>>,
     }
 
     #[glib::object_subclass]
@@ -51,6 +56,7 @@ mod imp {
         }
     }
 
+    #[glib::derived_properties]
     impl ObjectImpl for GamePathPreference {
         fn constructed(&self) {
             self.parent_constructed();
@@ -92,32 +98,35 @@ impl GamePathPreference {
             .build();
 
         macro_rules! setup_pick_folder_row {
-            ($row:ident, $button:ident, $state:ident, $validation_fn:expr) => {{
+            ($row:ident, $button:ident, $get_state:ident, $set_state:ident, $validation_fn:expr) => {{
                 $button.connect_clicked(clone!(
                     #[weak]
                     imp,
                     move |_| {
-                        let state = imp.$state.clone();
-                        let row = imp.$row.clone();
-
-                        imp.obj().pick_dir(move |path| {
-                            match path {
-                                Some(path) => {
-                                    if ($validation_fn)(&path) {
-                                        row.remove_css_class("error");
-                                        row.add_css_class("success");
-                                        row.set_subtitle(&path.to_string_lossy());
-                                        *state.as_ref().borrow_mut() = Some(path);
-                                    } else if state.as_ref().borrow().is_none() {
-                                        error!(?path, "Invalid");
-                                        row.add_css_class("error");
+                        let row = imp.$row.get();
+                        imp.obj().pick_dir(clone!(
+                            #[weak]
+                            imp,
+                            move |path| {
+                                let obj = imp.obj();
+                                match path {
+                                    Some(path) => {
+                                        if ($validation_fn)(&path) {
+                                            row.remove_css_class("error");
+                                            row.add_css_class("success");
+                                            row.set_subtitle(&path.to_string_lossy());
+                                            obj.$set_state(path);
+                                        } else if obj.$get_state().is_none() {
+                                            error!(?path, "Invalid");
+                                            row.add_css_class("error");
+                                        }
                                     }
-                                }
-                                None => {
-                                    row.remove_css_class("error");
-                                }
-                            };
-                        });
+                                    None => {
+                                        row.remove_css_class("error");
+                                    }
+                                };
+                            }
+                        ));
                     }
                 ));
             }};
@@ -130,6 +139,7 @@ impl GamePathPreference {
             row_game_root_location,
             button_game_root_location,
             game_root_path,
+            set_game_root_path,
             |path: &PathBuf| { path.join("mods").is_dir() }
         );
 
@@ -137,6 +147,7 @@ impl GamePathPreference {
             row_wine_prefix_location,
             button_wine_prefix_location,
             wine_prefix_path,
+            set_wine_prefix_path,
             |path: &PathBuf| {
                 NoitaPath::Other(Some(GamePath {
                     wine_prefix: Some(path.into()),
