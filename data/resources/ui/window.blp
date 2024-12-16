@@ -41,17 +41,31 @@ template $NoitadApplicationWindow: Adw.ApplicationWindow {
 
                 Adw.StatusPage {
                     vexpand: true;
-                    icon-name: "folder-templates-symbolic";
-                    title: "No Profile Exists";
+                    icon-name: "preferences-other-symbolic";
+                    title: "Initial Setup";
 
-                    Button button_main_profile_new {
-                        halign: center;
-                        label: "Create Profile";
-                        // todo: Need to be able to move to the next page once a profile is successfully created, so validation is needed
-                        styles [
-                            "suggested-action",
-                            "pill"
-                        ]
+                    Adw.Clamp {
+                        maximum-size: 500;
+
+                        Box {
+                            orientation: vertical;
+
+                            $GamePathPreference setup_game_path_pref {}
+
+                            Button button_end_setup {
+                                Adw.ButtonContent {
+                                    label: "Finish";
+                                    icon-name: "emblem-ok-symbolic";
+                                }
+
+                                sensitive: false;
+
+                                styles [
+                                    "suggested-action",
+                                    "pill"
+                                ]
+                            }
+                        }
                     }
                 }
             };

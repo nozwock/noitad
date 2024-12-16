@@ -143,20 +143,24 @@ impl GamePathPreference {
             |path: &PathBuf| { path.join("mods").is_dir() }
         );
 
-        setup_pick_folder_row!(
-            row_wine_prefix_location,
-            button_wine_prefix_location,
-            wine_prefix_path,
-            set_wine_prefix_path,
-            |path: &PathBuf| {
-                NoitaPath::Other(Some(GamePath {
-                    wine_prefix: Some(path.into()),
-                    ..Default::default()
-                }))
-                .save_dir()
-                .is_some()
-            }
-        );
+        if cfg!(target_os = "linux") {
+            setup_pick_folder_row!(
+                row_wine_prefix_location,
+                button_wine_prefix_location,
+                wine_prefix_path,
+                set_wine_prefix_path,
+                |path: &PathBuf| {
+                    NoitaPath::Other(Some(GamePath {
+                        wine_prefix: Some(path.into()),
+                        ..Default::default()
+                    }))
+                    .save_dir()
+                    .is_some()
+                }
+            );
+        } else {
+            imp.row_wine_prefix_location.get().set_visible(false);
+        }
     }
 
     fn pick_dir(&self, callback: impl FnOnce(Option<PathBuf>) + 'static) {

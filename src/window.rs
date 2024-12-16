@@ -1,6 +1,7 @@
-use std::borrow::BorrowMut;
-use std::cell::RefMut;
+use std::borrow::{Borrow, BorrowMut};
+use std::cell::{Cell, RefMut};
 use std::collections::HashMap;
+use std::rc::Rc;
 
 use adw::prelude::*;
 use adw::subclass::prelude::*;
@@ -10,13 +11,17 @@ use gtk::glib::clone;
 use gtk::{gio, glib, StringObject};
 use itertools::Itertools;
 use noitad_lib::config::Config;
+use noitad_lib::defines::APP_CONFIG_PATH;
 use noitad_lib::noita::mod_config::Mods;
+use noitad_lib::noita::{GamePath, NoitaPath};
 use tracing::{debug, error, info};
 
 use crate::application::NoitadApplication;
 use crate::config::{APP_ID, PROFILE};
+use crate::objects;
 use crate::objects::config::ModProfiles;
 use crate::objects::noita_mod::ModObject;
+use crate::widgets::game_path_pref::GamePathPreference;
 
 mod imp {
     use std::{cell::RefCell, collections::HashMap, rc::Rc};
@@ -30,6 +35,12 @@ mod imp {
     pub struct NoitadApplicationWindow {
         #[template_child]
         pub stack: TemplateChild<gtk::Stack>,
+
+        #[template_child]
+        pub setup_game_path_pref: TemplateChild<GamePathPreference>,
+        #[template_child]
+        pub button_end_setup: TemplateChild<gtk::Button>,
+
         #[template_child]
         pub dropdown_profile: TemplateChild<gtk::DropDown>,
         #[template_child]
@@ -155,13 +166,136 @@ impl NoitadApplicationWindow {
     fn setup_ui(&self) {
         let imp = self.imp();
 
-        // note: Temporary for testing
         let stack = imp.stack.get();
-        stack.set_visible_child_name("main_page");
+        self.setup_welcome_page();
+        if APP_CONFIG_PATH.is_file() {
+            stack.set_visible_child_name("main_page");
+        }
 
         let mod_list_model = gio::ListStore::new::<ModObject>();
         self.setup_profile_dropdown(&mod_list_model);
         self.setup_mod_list(&mod_list_model);
+    }
+
+    fn setup_welcome_page(&self) {
+        let imp = self.imp();
+        let setup_game_path_pref = imp.setup_game_path_pref.get();
+        let button_end_setup = imp.button_end_setup.get();
+        let dropdown_game_path_lookup = setup_game_path_pref.imp().game_path_lookup.get();
+
+        let is_steam_lookup_valid = Rc::new(Cell::new(false));
+
+        dropdown_game_path_lookup.connect_selected_item_notify(clone!(
+            #[weak]
+            setup_game_path_pref,
+            #[weak]
+            button_end_setup,
+            #[strong]
+            is_steam_lookup_valid,
+            move |_| {
+                validate_initial_setup(
+                    &setup_game_path_pref,
+                    &button_end_setup,
+                    &is_steam_lookup_valid,
+                );
+            }
+        ));
+        dropdown_game_path_lookup.notify("selected-item");
+
+        setup_game_path_pref.connect_game_root_path_notify(clone!(
+            #[weak]
+            setup_game_path_pref,
+            #[weak]
+            button_end_setup,
+            #[weak]
+            is_steam_lookup_valid,
+            move |_| {
+                validate_initial_setup(
+                    &setup_game_path_pref,
+                    &button_end_setup,
+                    &is_steam_lookup_valid,
+                );
+            }
+        ));
+        #[cfg(target_os = "linux")]
+        setup_game_path_pref.connect_wine_prefix_path_notify(clone!(
+            #[weak]
+            setup_game_path_pref,
+            #[weak]
+            button_end_setup,
+            #[weak]
+            is_steam_lookup_valid,
+            move |_| {
+                validate_initial_setup(
+                    &setup_game_path_pref,
+                    &button_end_setup,
+                    &is_steam_lookup_valid,
+                );
+            }
+        ));
+
+        fn validate_initial_setup(
+            obj: &GamePathPreference,
+            finish_button: &gtk::Button,
+            is_steam_lookup_valid: &Rc<Cell<bool>>,
+        ) {
+            let is_valid = match obj
+                .imp()
+                .game_path_lookup
+                .selected_item()
+                .and_downcast::<StringObject>()
+                .unwrap()
+                .string()
+                .to_lowercase()
+                .as_str()
+            {
+                "steam" => {
+                    is_steam_lookup_valid.get()
+                        || if let NoitaPath::Steam = NoitaPath::default() {
+                            is_steam_lookup_valid.set(true);
+                            true
+                        } else {
+                            // todo: show error via toast
+                            false
+                        }
+                }
+                "manual" => {
+                    obj.game_root_path().is_some()
+                        && (cfg!(not(target_os = "linux")) || obj.wine_prefix_path().is_some())
+                }
+                _ => unreachable!(),
+            };
+
+            finish_button.set_sensitive(is_valid);
+        }
+
+        let stack = imp.stack.get();
+        let config = imp.config.clone();
+        button_end_setup.connect_clicked(move |_| {
+            let kind = setup_game_path_pref
+                .imp()
+                .game_path_lookup
+                .selected_item()
+                .and_downcast::<StringObject>()
+                .unwrap()
+                .string()
+                .to_lowercase();
+
+            let noita_path = match kind.as_str() {
+                "steam" => NoitaPath::Steam,
+                "manual" => NoitaPath::Other(Some(GamePath {
+                    game_root: setup_game_path_pref.game_root_path().unwrap(),
+                    wine_prefix: setup_game_path_pref.wine_prefix_path(),
+                })),
+                _ => unreachable!(),
+            };
+
+            info!(?noita_path, "Completing initial setup");
+
+            config.set_noita_path(objects::config::NoitaPath(noita_path));
+
+            stack.set_visible_child_name("main_page");
+        });
     }
 
     // todo: Currently, whatever profile you're viewing becomes the active_profile
@@ -355,9 +489,10 @@ impl NoitadApplicationWindow {
 
                 let is_profile_modified = imp.is_profile_modified.clone();
                 let mod_list_models = imp.mod_list_models.clone();
-                let mod_list_models_ref = mod_list_models.borrow();
+                let mod_list_models_ref = mod_list_models.as_ref().borrow();
                 let mut profiles = imp.config.profiles();
                 is_profile_modified
+                    .as_ref()
                     .borrow()
                     .iter()
                     .filter_map(
