@@ -173,50 +173,11 @@ impl NoitadApplicationWindow {
         let mod_list_model = gio::ListStore::new::<ModObject>();
         self.setup_profile_dropdown(&mod_list_model);
         self.setup_mod_list(&mod_list_model);
-
-        let button_save_mod_list = imp.button_save_mod_list.get();
-        button_save_mod_list.connect_clicked(clone!(
-            #[weak]
-            imp,
-            move |btn| {
-                btn.set_sensitive(false);
-
-                let is_profile_modified = imp.is_profile_modified.clone();
-                let mod_list_models = imp.mod_list_models.clone();
-                let mod_list_models_ref = mod_list_models.borrow();
-                let mut profiles = imp.config.profiles();
-                is_profile_modified
-                    .borrow()
-                    .iter()
-                    .filter_map(
-                        |(profile, is_modified)| {
-                            if *is_modified {
-                                Some(profile)
-                            } else {
-                                None
-                            }
-                        },
-                    )
-                    .map(|profile| {
-                        (
-                            profile,
-                            mod_objs_to_mods(mod_list_models_ref.get(profile).unwrap()),
-                        )
-                    })
-                    .for_each(|(profile, mods)| {
-                        info!(%profile, "Serializing");
-                        _ = profiles
-                            .borrow_mut()
-                            .update_profile(profile, &mods)
-                            .inspect_err(|e| error!(%e));
-                    });
-
-                btn.set_visible(false);
-                btn.set_sensitive(true);
-            }
-        ));
     }
 
+    // todo: Currently, whatever profile you're viewing becomes the active_profile
+    // but it shouldn't be like that. This needs to be decoupled, a dropdown in preferences
+    // for setting active profile and a sidebar list for viewing a profile
     fn setup_profile_dropdown(&self, mod_list_model: &ListStore) {
         let imp = self.imp();
         let cfg = &imp.config;
@@ -395,6 +356,48 @@ impl NoitadApplicationWindow {
 
             row.into()
         });
+
+        let button_save_mod_list = imp.button_save_mod_list.get();
+        button_save_mod_list.connect_clicked(clone!(
+            #[weak]
+            imp,
+            move |btn| {
+                btn.set_sensitive(false);
+
+                let is_profile_modified = imp.is_profile_modified.clone();
+                let mod_list_models = imp.mod_list_models.clone();
+                let mod_list_models_ref = mod_list_models.borrow();
+                let mut profiles = imp.config.profiles();
+                is_profile_modified
+                    .borrow()
+                    .iter()
+                    .filter_map(
+                        |(profile, is_modified)| {
+                            if *is_modified {
+                                Some(profile)
+                            } else {
+                                None
+                            }
+                        },
+                    )
+                    .map(|profile| {
+                        (
+                            profile,
+                            mod_objs_to_mods(mod_list_models_ref.get(profile).unwrap()),
+                        )
+                    })
+                    .for_each(|(profile, mods)| {
+                        info!(%profile, "Serializing");
+                        _ = profiles
+                            .borrow_mut()
+                            .update_profile(profile, &mods)
+                            .inspect_err(|e| error!(%e));
+                    });
+
+                btn.set_visible(false);
+                btn.set_sensitive(true);
+            }
+        ));
     }
 
     fn get_profile_mod_objs(
