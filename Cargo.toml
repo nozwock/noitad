@@ -47,3 +47,4 @@ tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 
 color-eyre = "0.6"
 itertools = "0.13"
+better_default = "1.0"

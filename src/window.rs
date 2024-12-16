@@ -25,7 +25,7 @@ mod imp {
 
     use super::*;
 
-    #[derive(Debug, gtk::CompositeTemplate)]
+    #[derive(Debug, gtk::CompositeTemplate, better_default::Default)]
     #[template(resource = "/io/github/nozwock/noitad/ui/window.ui")]
     pub struct NoitadApplicationWindow {
         #[template_child]
@@ -36,26 +36,13 @@ mod imp {
         pub mod_list: TemplateChild<gtk::ListBox>,
         #[template_child]
         pub button_save_mod_list: TemplateChild<gtk::Button>,
+
+        #[default(gio::Settings::new(APP_ID))]
         pub settings: gio::Settings,
         pub config: ConfigObject,
 
         pub mod_list_models: Rc<RefCell<HashMap<String, Vec<ModObject>>>>,
         pub is_profile_modified: Rc<RefCell<HashMap<String, bool>>>,
-    }
-
-    impl Default for NoitadApplicationWindow {
-        fn default() -> Self {
-            Self {
-                stack: Default::default(),
-                dropdown_profile: Default::default(),
-                mod_list: Default::default(),
-                button_save_mod_list: Default::default(),
-                settings: gio::Settings::new(APP_ID),
-                config: Default::default(),
-                mod_list_models: Default::default(),
-                is_profile_modified: Default::default(),
-            }
-        }
     }
 
     #[glib::object_subclass]
