@@ -1,5 +1,5 @@
 use std::borrow::{Borrow, BorrowMut};
-use std::cell::{Cell, RefMut};
+use std::cell::{Cell, RefCell, RefMut};
 use std::collections::HashMap;
 use std::rc::Rc;
 
@@ -51,6 +51,7 @@ mod imp {
         #[default(gio::Settings::new(APP_ID))]
         pub settings: gio::Settings,
         pub config: ConfigObject,
+        pub is_initial_setup_done: Rc<RefCell<Option<bool>>>,
 
         pub mod_list_models: Rc<RefCell<HashMap<String, Vec<ModObject>>>>,
         pub is_profile_modified: Rc<RefCell<HashMap<String, bool>>>,
@@ -103,7 +104,13 @@ mod imp {
                 tracing::warn!("Failed to save window state, {}", &err);
             }
 
-            _ = dbg!(dbg!(self.config.into_simple_config()).store());
+            match self.is_initial_setup_done.as_ref().borrow().to_owned() {
+                // Initial setup was started but not completed, skip default serialization
+                Some(false) => {}
+                _ => {
+                    _ = dbg!(dbg!(self.config.into_simple_config()).store());
+                }
+            }
 
             // Pass close request on to the parent
             self.parent_close_request()
@@ -166,10 +173,17 @@ impl NoitadApplicationWindow {
     fn setup_ui(&self) {
         let imp = self.imp();
 
+        // Setup welcoming screen
         let stack = imp.stack.get();
         self.setup_welcome_page();
+
         if APP_CONFIG_PATH.is_file() {
             stack.set_visible_child_name("main_page");
+        } else {
+            imp.is_initial_setup_done
+                .as_ref()
+                .borrow_mut()
+                .replace(false); // Starting initial setup
         }
 
         let mod_list_model = gio::ListStore::new::<ModObject>();
@@ -185,54 +199,32 @@ impl NoitadApplicationWindow {
 
         let is_steam_lookup_valid = Rc::new(Cell::new(false));
 
-        dropdown_game_path_lookup.connect_selected_item_notify(clone!(
-            #[weak]
-            setup_game_path_pref,
-            #[weak]
-            button_end_setup,
-            #[strong]
-            is_steam_lookup_valid,
-            move |_| {
-                validate_initial_setup(
-                    &setup_game_path_pref,
-                    &button_end_setup,
-                    &is_steam_lookup_valid,
-                );
-            }
-        ));
+        macro_rules! validate_initial_setup_callback {
+            () => {{
+                clone!(
+                    #[weak]
+                    setup_game_path_pref,
+                    #[weak]
+                    button_end_setup,
+                    #[strong]
+                    is_steam_lookup_valid,
+                    move |_| {
+                        validate_initial_setup(
+                            &setup_game_path_pref,
+                            &button_end_setup,
+                            &is_steam_lookup_valid,
+                        );
+                    }
+                )
+            }};
+        }
+
+        dropdown_game_path_lookup.connect_selected_item_notify(validate_initial_setup_callback!());
         dropdown_game_path_lookup.notify("selected-item");
 
-        setup_game_path_pref.connect_game_root_path_notify(clone!(
-            #[weak]
-            setup_game_path_pref,
-            #[weak]
-            button_end_setup,
-            #[weak]
-            is_steam_lookup_valid,
-            move |_| {
-                validate_initial_setup(
-                    &setup_game_path_pref,
-                    &button_end_setup,
-                    &is_steam_lookup_valid,
-                );
-            }
-        ));
+        setup_game_path_pref.connect_game_root_path_notify(validate_initial_setup_callback!());
         #[cfg(target_os = "linux")]
-        setup_game_path_pref.connect_wine_prefix_path_notify(clone!(
-            #[weak]
-            setup_game_path_pref,
-            #[weak]
-            button_end_setup,
-            #[weak]
-            is_steam_lookup_valid,
-            move |_| {
-                validate_initial_setup(
-                    &setup_game_path_pref,
-                    &button_end_setup,
-                    &is_steam_lookup_valid,
-                );
-            }
-        ));
+        setup_game_path_pref.connect_wine_prefix_path_notify(validate_initial_setup_callback!());
 
         fn validate_initial_setup(
             obj: &GamePathPreference,
@@ -271,6 +263,7 @@ impl NoitadApplicationWindow {
 
         let stack = imp.stack.get();
         let config = imp.config.clone();
+        let is_initial_setup_done = imp.is_initial_setup_done.clone();
         button_end_setup.connect_clicked(move |_| {
             let kind = setup_game_path_pref
                 .imp()
@@ -295,6 +288,7 @@ impl NoitadApplicationWindow {
             config.set_noita_path(objects::config::NoitaPath(noita_path));
 
             stack.set_visible_child_name("main_page");
+            is_initial_setup_done.as_ref().borrow_mut().replace(true);
         });
     }
 
