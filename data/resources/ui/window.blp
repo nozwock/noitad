@@ -74,76 +74,130 @@ template $NoitadApplicationWindow: Adw.ApplicationWindow {
         StackPage {
             name: "main_page";
 
-            child: Adw.ToolbarView {
-                [top]
-                Adw.HeaderBar {
-                    Box {
-                        Box {
-                            DropDown dropdown_profile {
-                                enable-search: true;
-                            }
+            child: Adw.NavigationSplitView {
+                sidebar: Adw.NavigationPage {
+                    width-request: 280;
+                    title: "Noita'd";
 
-                            Button button_profile_new {
-                                name: "circular-plus";
-                                icon-name: "list-add-symbolic";
-                                action-name: "win.profile-new";
+                    Adw.ToolbarView {
+                        [top]
+                        Adw.HeaderBar {
+                            [end]
+                            MenuButton {
+                                icon-name: 'open-menu-symbolic';
+                                menu-model: primary_menu;
+                                primary: true;
                             }
-
-                            styles [
-                                "linked"
-                            ]
                         }
 
-                        Separator {
-                            styles [
-                                "spacer"
-                            ]
-                        }
+                        Stack sidebar_stack {
+                            visible-child-name: "main";
+                            transition-type: crossfade;
+                            // StackPage {
+                            //     name: "status_no_profile";
+                            //     child: Adw.StatusPage {
+                            //         title: _("Profiles");
+                            //         description: "No mod profile found";
+                            //         icon-name: "folder-templates-symbolic";
+                            //         Button button_create_first_profile {
+                            //             halign: center;
+                            //             can-shrink: true;
+                            //             label: _("Create Profile");
+                            //             styles [
+                            //                 "pill",
+                            //                 "suggested-action"
+                            //             ]
+                            //         }
+                            //         styles [
+                            //             "compact"
+                            //         ]
+                            //     };
+                            // }
+                            StackPage {
+                                name: "main";
 
-                        Button button_save_mod_list {
-                            visible: false;
+                                child: Box {
+                                    orientation: vertical;
 
-                            Adw.ButtonContent {
-                                label: _("Apply");
-                                icon-name: "checkmark-small-symbolic";
+                                    ScrolledWindow {
+                                        hscrollbar-policy: never;
+                                        vexpand: true;
+
+                                        Adw.PreferencesGroup {
+                                            title: "Profiles";
+                                            margin-top: 12;
+                                            margin-bottom: 12;
+                                            margin-start: 12;
+                                            margin-end: 12;
+
+                                            [header-suffix]
+                                            Button button_new_profile {
+                                                icon-name: "list-add-symbolic";
+                                                tooltip-text: "New Profile";
+                                                action-name: "win.profile-new";
+
+                                                styles [
+                                                    "flat"
+                                                ]
+                                            }
+
+                                            ListBox profiles_list {
+                                                styles [
+                                                    "boxed-list"
+                                                ]
+                                            }
+                                        }
+                                    }
+                                };
                             }
-
-                            styles [
-                                "suggested-action",
-                            ]
                         }
                     }
+                };
 
-                    [end]
-                    MenuButton {
-                        icon-name: 'open-menu-symbolic';
-                        menu-model: primary_menu;
-                        primary: true;
-                    }
-                }
+                content: Adw.NavigationPage mod_list_page {
+                    Adw.ToolbarView {
+                        [top]
+                        Adw.HeaderBar {
+                            Box {
+                                Button button_save_mod_list {
+                                    visible: false;
 
-                ScrolledWindow {
-                    hscrollbar-policy: never;
+                                    Adw.ButtonContent {
+                                        label: _("Apply");
+                                        icon-name: "checkmark-small-symbolic";
+                                    }
 
-                    Adw.Clamp {
-                        maximum-size: 576;
+                                    styles [
+                                        "suggested-action",
+                                    ]
+                                }
+                            }
+                        }
 
-                        Adw.PreferencesGroup {
-                            valign: center; // Or, on ListBox if not under PrefGroup
-                            ListBox mod_list {
-                                selection-mode: none;
-                                margin-end: 12;
-                                margin-start: 12;
-                                margin-top: 12;
-                                margin-bottom: 12;
+                        ScrolledWindow {
+                            hscrollbar-policy: never;
 
-                                styles [
-                                    "boxed-list"
-                                ]
+                            Adw.Clamp {
+                                maximum-size: 576;
+
+                                Adw.PreferencesGroup {
+                                    valign: center; // Or, on ListBox if not under PrefGroup
+                                    ListBox mod_list {
+                                        selection-mode: none;
+                                        margin-end: 12;
+                                        margin-start: 12;
+                                        margin-top: 12;
+                                        margin-bottom: 12;
+
+                                        styles [
+                                            "boxed-list"
+                                        ]
+                                    }
+                                }
                             }
                         }
                     }
-                }
+                };
             };
         }
     }

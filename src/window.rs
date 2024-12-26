@@ -1,5 +1,5 @@
-use std::borrow::{Borrow, BorrowMut};
-use std::cell::{Cell, RefCell, RefMut};
+use std::borrow::BorrowMut;
+use std::cell::{Cell, RefMut};
 use std::collections::HashMap;
 use std::rc::Rc;
 
@@ -8,7 +8,7 @@ use adw::subclass::prelude::*;
 use color_eyre::eyre::Result;
 use gtk::gio::ListStore;
 use gtk::glib::clone;
-use gtk::{gio, glib, StringObject};
+use gtk::{gio, glib, SingleSelection, StringObject};
 use itertools::Itertools;
 use noitad_lib::config::Config;
 use noitad_lib::defines::APP_CONFIG_PATH;
@@ -35,6 +35,8 @@ mod imp {
     pub struct NoitadApplicationWindow {
         #[template_child]
         pub stack: TemplateChild<gtk::Stack>,
+        #[template_child]
+        pub mod_list_page: TemplateChild<adw::NavigationPage>,
 
         #[template_child]
         pub setup_game_path_pref: TemplateChild<GamePathPreference>,
@@ -42,7 +44,7 @@ mod imp {
         pub button_end_setup: TemplateChild<gtk::Button>,
 
         #[template_child]
-        pub dropdown_profile: TemplateChild<gtk::DropDown>,
+        pub profiles_list: TemplateChild<gtk::ListBox>,
         #[template_child]
         pub mod_list: TemplateChild<gtk::ListBox>,
         #[template_child]
@@ -186,8 +188,11 @@ impl NoitadApplicationWindow {
                 .replace(false); // Starting initial setup
         }
 
+        // todo: Make main mod list content page collapse when we are on the 'status_no_profile' page in the sidebar
+        // Also, make a handler for button_create_first_profile
+
         let mod_list_model = gio::ListStore::new::<ModObject>();
-        self.setup_profile_dropdown(&mod_list_model);
+        self.setup_profile_sidebar(&mod_list_model);
         self.setup_mod_list(&mod_list_model);
     }
 
@@ -295,11 +300,11 @@ impl NoitadApplicationWindow {
     // todo: Currently, whatever profile you're viewing becomes the active_profile
     // but it shouldn't be like that. This needs to be decoupled, a dropdown in preferences
     // for setting active profile and a sidebar list for viewing a profile
-    fn setup_profile_dropdown(&self, mod_list_model: &ListStore) {
+    fn setup_profile_sidebar(&self, mod_list_model: &ListStore) {
         let imp = self.imp();
         let cfg = &imp.config;
 
-        let dropdown_profile = imp.dropdown_profile.get();
+        let profiles_list = imp.profiles_list.get();
         let mod_list_models = imp.mod_list_models.clone();
 
         fn sync_profiles_model(profiles: &ModProfiles, model: &ListStore) {
@@ -340,6 +345,8 @@ impl NoitadApplicationWindow {
                 });
         }
 
+        // todo: Reset ListBox::move-cursor, so that moving keys only sets focus and not select row aswell,
+        // and remove/unbind ListBox::toggle-cursor-row, since toggling doesn't makes sense here
         let profiles_model = ListStore::new::<StringObject>();
         sync_profiles_model(&cfg.profiles(), &profiles_model);
         cfg.connect_profiles_notify(clone!(
@@ -350,35 +357,127 @@ impl NoitadApplicationWindow {
                 sync_profiles_model(&profiles, &profiles_model);
             }
         ));
-        dropdown_profile.set_model(Some(&profiles_model));
+        let selection_model = SingleSelection::new(Some(profiles_model));
+        profiles_list.bind_model(
+            Some(&selection_model),
+            clone!(
+                #[weak]
+                cfg,
+                #[upgrade_or_panic]
+                move |obj| {
+                    let profile = obj.downcast_ref::<StringObject>().unwrap();
 
-        if let Some(active_profile) = cfg.active_profile() {
-            dropdown_profile.set_selected(
-                cfg.profiles()
-                    .keys()
-                    .sorted()
-                    .enumerate()
-                    .find_map(|(i, s)| {
-                        if s.as_str() == active_profile {
-                            Some(i)
-                        } else {
-                            None
-                        }
-                    })
-                    .unwrap() as u32,
-            );
-        }
-        dropdown_profile.connect_selected_item_notify(clone!(
+                    let row = adw::ActionRow::builder()
+                        .title(profile.string().as_str())
+                        .build();
+                    let default_profile = gtk::Image::builder()
+                        .icon_name("emblem-default-symbolic")
+                        .tooltip_text("Default Profile")
+                        .visible(false)
+                        .build();
+
+                    // fix(done): disable remove action for default profile
+                    // Leaving it here for this one commit...
+                    //
+                    // This doesn't seem to work, disabling menu item by disabling its associated action that is
+                    // row.action_set_enabled("profile-row.set-default", false);
+                    //
+                    // Others say that just there being an invalid action name or maybe just None(?), should make
+                    // the menu item button insensitive but ofcourse it DOESN'T WORK!
+                    //
+                    // So I've just decided for now to disable the whole popover_button altogther for the default profile row.
+                    // That works in our case...
+                    //
+                    // So it turns out, this ActionEntry is some weird API to create Actions quickly
+                    // and so set_enabled(), etc methods don't exist for it and instead we have to get
+                    // action from the SimpleActionGroup via the lookup_action() method
+                    //
+                    // Since I've settled for disabling the popover button instead, but incase I ever want to disable the action
+                    // then here it is...
+                    // ```
+                    // action_group
+                    //     .lookup_action("set-default")
+                    //     .unwrap()
+                    //     .downcast::<gio::SimpleAction>()
+                    //     .unwrap()
+                    //     .set_enabled(false);
+                    // ```
+
+                    let menu_model = gio::Menu::new();
+                    menu_model.append_item(&gio::MenuItem::new(
+                        Some("Set as Default"),
+                        Some("profile-row.set-default"),
+                    ));
+                    menu_model.append_item(&gio::MenuItem::new(
+                        Some("Remove Profile"),
+                        Some("profile-row.remove"),
+                    ));
+                    let popover_button = gtk::MenuButton::builder()
+                        .valign(gtk::Align::Center)
+                        .icon_name("view-more-symbolic")
+                        .css_classes(["flat"])
+                        .menu_model(&menu_model)
+                        .build();
+
+                    let action_group = gio::SimpleActionGroup::new();
+
+                    // todo: Only have action defined once with getting state (profile name) via action parameter
+                    // Also, attach them to window, that way it seems action.set_enabled method will work
+
+                    let set_default = gio::ActionEntry::builder("set-default")
+                        .activate(clone!(
+                            #[weak]
+                            profile,
+                            #[weak]
+                            cfg,
+                            move |_, _, _| {
+                                cfg.set_active_profile(profile.string().as_str());
+                            }
+                        ))
+                        .build();
+                    let remove_profile = gio::ActionEntry::builder("remove")
+                        .activate(clone!(
+                            #[weak]
+                            profile,
+                            #[weak]
+                            cfg,
+                            move |_, _, _| {
+                                let mut profiles = cfg.profiles();
+                                _ = profiles
+                                    .remove_profile(profile.string().as_str())
+                                    .inspect_err(|err| error!(%err));
+                                cfg.set_profiles(profiles);
+                            }
+                        ))
+                        .build();
+                    action_group.add_action_entries([set_default, remove_profile]);
+                    row.insert_action_group("profile-row", Some(&action_group));
+
+                    row.add_suffix(&default_profile);
+                    row.add_suffix(&popover_button);
+
+                    row.into()
+                }
+            ),
+        );
+
+        let mod_list_page = imp.mod_list_page.get();
+        profiles_list.connect_row_selected(clone!(
             #[weak]
             cfg,
             #[weak]
             mod_list_model,
             #[weak]
             mod_list_models,
-            move |dropdown| {
-                let str_obj = dropdown.selected_item().unwrap();
-                let active_profile = str_obj.downcast_ref::<StringObject>().unwrap().string();
-                cfg.set_active_profile(active_profile.as_str());
+            #[weak]
+            mod_list_page,
+            move |_obj, row| {
+                let active_profile = row
+                    .unwrap() // fix: can be None when user deletes selected profile
+                    .downcast_ref::<adw::ActionRow>()
+                    .unwrap()
+                    .title();
+                mod_list_page.set_title(&format!("Profile — {}", active_profile.as_str()));
 
                 // Update mod_list
                 let is_model_cached = mod_list_models
@@ -411,9 +510,80 @@ impl NoitadApplicationWindow {
                 };
 
                 mod_list_model.remove_all();
+                // todo: This also needs to be when the first profile is created
                 mod_list_model.extend_from_slice(&mod_objs);
             }
         ));
+
+        // todo: Select the last selected profile by default instead of default_profile, stored in GSettings at window exit
+        if let Some(active_profile) = cfg.active_profile() {
+            profiles_list.select_row(
+                profiles_list
+                    .row_at_index(
+                        cfg.profiles()
+                            .keys()
+                            .sorted()
+                            .enumerate()
+                            .find_map(|(i, s)| {
+                                if s.as_str() == active_profile {
+                                    Some(i)
+                                } else {
+                                    None
+                                }
+                            })
+                            .unwrap() as i32,
+                    )
+                    .as_ref(),
+            );
+        }
+
+        // Set the default profile icon
+        cfg.connect_active_profile_notify(clone!(
+            #[weak]
+            profiles_list,
+            #[weak]
+            selection_model,
+            move |cfg| {
+                for i in 0..selection_model.n_items() {
+                    let row = profiles_list
+                        .row_at_index(i as i32)
+                        .unwrap()
+                        .downcast::<adw::ActionRow>()
+                        .unwrap();
+
+                    let image = row
+                        .child() // root Box
+                        .unwrap()
+                        .last_child() // Box for suffix children
+                        .unwrap()
+                        .observe_children()
+                        .into_iter()
+                        .map(|it| it.unwrap())
+                        .find_map(|child| child.downcast::<gtk::Image>().ok())
+                        .unwrap();
+
+                    let popover_button = row
+                        .child() // root Box
+                        .unwrap()
+                        .last_child() // Box for suffix children
+                        .unwrap()
+                        .observe_children()
+                        .into_iter()
+                        .map(|it| it.unwrap())
+                        .find_map(|child| child.downcast::<gtk::MenuButton>().ok())
+                        .unwrap();
+
+                    if cfg.active_profile().unwrap() == row.title().as_str() {
+                        image.set_visible(true);
+                        popover_button.set_sensitive(false);
+                    } else {
+                        image.set_visible(false);
+                        popover_button.set_sensitive(true);
+                    }
+                }
+            }
+        ));
+        cfg.notify_active_profile(); // To set the icon immediately
     }
 
     fn setup_mod_list(&self, mod_list_model: &ListStore) {
@@ -421,21 +591,10 @@ impl NoitadApplicationWindow {
         let cfg = imp.config.clone();
 
         let mod_list = imp.mod_list.get();
-        let mod_list_models = imp.mod_list_models.clone();
 
         // todo: Aside from the sync for the active profile with noita mod_config,
         // there needs to be sync for others where new mod entries are added in those profiles
         // when they're being loaded
-
-        // todo: This also needs to be when the first profile is created
-        if let Some(active_profile) = cfg.active_profile() {
-            let mod_objs = Self::get_profile_mod_objs(
-                &cfg.profiles(),
-                &active_profile,
-                mod_list_models.as_ref().borrow_mut(),
-            );
-            mod_list_model.extend_from_slice(&mod_objs);
-        }
 
         let button_save_mod_list = imp.button_save_mod_list.get();
         let is_profile_modified = imp.is_profile_modified.clone();
