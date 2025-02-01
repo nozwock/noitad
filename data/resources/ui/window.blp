@@ -23,7 +23,14 @@ menu primary_menu {
 template $NoitadApplicationWindow: Adw.ApplicationWindow {
     default-width: 640;
     default-height: 540;
-
+    // todo: Make the window adaptive, will need to handle the no profile case;
+    // since the sidebar must be collapsed in that case regardless of window size
+    // Adw.Breakpoint {
+    //     condition ("max-width: 720")
+    //     setters {
+    //         sidebar_split.collapsed: true;
+    //     }
+    // }
     Stack stack {
         transition-type: crossfade;
 
@@ -74,7 +81,7 @@ template $NoitadApplicationWindow: Adw.ApplicationWindow {
         StackPage {
             name: "main_page";
 
-            child: Adw.NavigationSplitView {
+            child: Adw.NavigationSplitView sidebar_split {
                 sidebar: Adw.NavigationPage {
                     width-request: 280;
                     title: "Noita'd";
@@ -91,30 +98,33 @@ template $NoitadApplicationWindow: Adw.ApplicationWindow {
                         }
 
                         Stack sidebar_stack {
-                            visible-child-name: "main";
-                            transition-type: crossfade;
-                            // StackPage {
-                            //     name: "status_no_profile";
-                            //     child: Adw.StatusPage {
-                            //         title: _("Profiles");
-                            //         description: "No mod profile found";
-                            //         icon-name: "folder-templates-symbolic";
-                            //         Button button_create_first_profile {
-                            //             halign: center;
-                            //             can-shrink: true;
-                            //             label: _("Create Profile");
-                            //             styles [
-                            //                 "pill",
-                            //                 "suggested-action"
-                            //             ]
-                            //         }
-                            //         styles [
-                            //             "compact"
-                            //         ]
-                            //     };
-                            // }
                             StackPage {
-                                name: "main";
+                                name: "status_no_profile";
+
+                                child: Adw.StatusPage {
+                                    title: _("Profiles");
+                                    description: "No mod profile found";
+                                    icon-name: "folder-templates-symbolic";
+
+                                    Button button_create_first_profile {
+                                        halign: center;
+                                        can-shrink: true;
+                                        label: _("Create Profile");
+
+                                        styles [
+                                            "pill",
+                                            "suggested-action"
+                                        ]
+                                    }
+
+                                    styles [
+                                        "compact"
+                                    ]
+                                };
+                            }
+
+                            StackPage {
+                                name: "profiles";
 
                                 child: Box {
                                     orientation: vertical;

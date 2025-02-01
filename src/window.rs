@@ -36,12 +36,19 @@ mod imp {
         #[template_child]
         pub stack: TemplateChild<gtk::Stack>,
         #[template_child]
+        pub sidebar_stack: TemplateChild<gtk::Stack>,
+        #[template_child]
+        pub sidebar_split: TemplateChild<adw::NavigationSplitView>,
+        #[template_child]
         pub mod_list_page: TemplateChild<adw::NavigationPage>,
 
         #[template_child]
         pub setup_game_path_pref: TemplateChild<GamePathPreference>,
         #[template_child]
         pub button_end_setup: TemplateChild<gtk::Button>,
+
+        #[template_child]
+        pub button_create_first_profile: TemplateChild<gtk::Button>,
 
         #[template_child]
         pub profiles_list: TemplateChild<gtk::ListBox>,
@@ -188,11 +195,36 @@ impl NoitadApplicationWindow {
                 .replace(false); // Starting initial setup
         }
 
-        // todo: Make main mod list content page collapse when we are on the 'status_no_profile' page in the sidebar
-        // Also, make a handler for button_create_first_profile
+        let sidebar_stack = imp.sidebar_stack.get();
 
+        let cfg = &imp.config;
         let mod_list_model = gio::ListStore::new::<ModObject>();
-        self.setup_profile_sidebar(&mod_list_model);
+
+        if cfg.profiles().len() != 0 {
+            self.setup_profile_sidebar(&mod_list_model);
+        } else {
+            imp.sidebar_split.get().set_collapsed(true);
+            sidebar_stack.set_visible_child_name("status_no_profile");
+            imp.button_create_first_profile
+                .get()
+                .connect_clicked(clone!(
+                    #[weak(rename_to = obj)]
+                    self,
+                    #[weak]
+                    mod_list_model,
+                    move |_| {
+                        obj.present_profile_new_dialog(clone!(
+                            #[weak]
+                            obj,
+                            move || {
+                                obj.imp().sidebar_split.get().set_collapsed(false);
+                                obj.setup_profile_sidebar(&mod_list_model);
+                            }
+                        ));
+                    }
+                ));
+        }
+
         self.setup_mod_list(&mod_list_model);
     }
 
@@ -297,12 +329,12 @@ impl NoitadApplicationWindow {
         });
     }
 
-    // todo: Currently, whatever profile you're viewing becomes the active_profile
-    // but it shouldn't be like that. This needs to be decoupled, a dropdown in preferences
-    // for setting active profile and a sidebar list for viewing a profile
     fn setup_profile_sidebar(&self, mod_list_model: &ListStore) {
+        let sidebar_stack = self.imp().sidebar_stack.get();
         let imp = self.imp();
         let cfg = &imp.config;
+
+        sidebar_stack.set_visible_child_name("profiles");
 
         let profiles_list = imp.profiles_list.get();
         let mod_list_models = imp.mod_list_models.clone();
@@ -485,6 +517,7 @@ impl NoitadApplicationWindow {
                     .borrow()
                     .contains_key(active_profile.as_str());
 
+                // todo: a top header progress bar, since selecting profile seems to take around 0.5s-1s
                 debug!(
                     name = active_profile.as_str(),
                     is_model_cached, "Selected profile"
@@ -531,7 +564,8 @@ impl NoitadApplicationWindow {
                                     None
                                 }
                             })
-                            .unwrap() as i32,
+                            .expect("Active profile must be in the profiles list")
+                            as i32,
                     )
                     .as_ref(),
             );
