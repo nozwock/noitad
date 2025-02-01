@@ -8,7 +8,7 @@ use adw::subclass::prelude::*;
 use color_eyre::eyre::Result;
 use gtk::gio::ListStore;
 use gtk::glib::clone;
-use gtk::{gio, glib, SingleSelection, StringObject};
+use gtk::{gio, glib, ListBox, SingleSelection, StringObject};
 use itertools::Itertools;
 use noitad_lib::config::Config;
 use noitad_lib::defines::APP_CONFIG_PATH;
@@ -19,7 +19,7 @@ use tracing::{debug, error, info};
 use crate::application::NoitadApplication;
 use crate::config::{APP_ID, PROFILE};
 use crate::objects;
-use crate::objects::config::ModProfiles;
+use crate::objects::config::{ConfigObject, ModProfiles};
 use crate::objects::noita_mod::ModObject;
 use crate::widgets::game_path_pref::GamePathPreference;
 
@@ -504,11 +504,14 @@ impl NoitadApplicationWindow {
             #[weak]
             mod_list_page,
             move |_obj, row| {
-                let active_profile = row
-                    .unwrap() // fix: can be None when user deletes selected profile
-                    .downcast_ref::<adw::ActionRow>()
-                    .unwrap()
-                    .title();
+                let active_profile =
+                    match row.map(|it| it.downcast_ref::<adw::ActionRow>()).flatten() {
+                        Some(it) => it.title(),
+                        None => {
+                            // When deleting a selected profile
+                            return;
+                        }
+                    };
                 mod_list_page.set_title(&format!("Profile — {}", active_profile.as_str()));
 
                 // Update mod_list
@@ -548,28 +551,32 @@ impl NoitadApplicationWindow {
             }
         ));
 
-        // todo: Select the last selected profile by default instead of default_profile, stored in GSettings at window exit
-        if let Some(active_profile) = cfg.active_profile() {
-            profiles_list.select_row(
-                profiles_list
-                    .row_at_index(
-                        cfg.profiles()
-                            .keys()
-                            .sorted()
-                            .enumerate()
-                            .find_map(|(i, s)| {
-                                if s.as_str() == active_profile {
-                                    Some(i)
-                                } else {
-                                    None
-                                }
-                            })
-                            .expect("Active profile must be in the profiles list")
-                            as i32,
-                    )
-                    .as_ref(),
-            );
+        fn select_default_profile(profiles_list: &ListBox, cfg: &ConfigObject) {
+            if let Some(active_profile) = cfg.active_profile() {
+                profiles_list.select_row(
+                    profiles_list
+                        .row_at_index(
+                            cfg.profiles()
+                                .keys()
+                                .sorted()
+                                .enumerate()
+                                .find_map(|(i, s)| {
+                                    if s.as_str() == active_profile {
+                                        Some(i)
+                                    } else {
+                                        None
+                                    }
+                                })
+                                .expect("Active profile must be in the profiles list")
+                                as i32,
+                        )
+                        .as_ref(),
+                );
+            }
         }
+
+        // todo: Select the last selected profile by default instead of default_profile, stored in GSettings at window exit
+        select_default_profile(&profiles_list, cfg);
 
         // Set the default profile icon
         cfg.connect_active_profile_notify(clone!(
