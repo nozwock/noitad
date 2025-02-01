@@ -27,7 +27,7 @@ mod imp {
         pub noita_path: RefCell<NoitaPath>,
         #[property(get, set)]
         pub profiles: RefCell<ModProfiles>,
-        #[property(get, set)]
+        #[property(get, set, nullable)]
         pub active_profile: RefCell<Option<String>>,
         #[property(get, set)]
         pub active_profile_sync: RefCell<bool>,

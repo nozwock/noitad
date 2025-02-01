@@ -431,7 +431,7 @@ impl NoitadApplicationWindow {
                             #[weak]
                             cfg,
                             move |_, _, _| {
-                                cfg.set_active_profile(profile.string().as_str());
+                                cfg.set_active_profile(Some(profile.string()));
                             }
                         ))
                         .build();
