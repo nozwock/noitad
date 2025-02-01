@@ -165,7 +165,7 @@ impl NoitadApplicationWindow {
     fn setup_gactions(&self) {
         let action_profile_new = gio::ActionEntry::builder("profile-new")
             .activate(|window: &Self, _, _| {
-                window.present_profile_new_dialog();
+                window.present_profile_new_dialog(|| {});
             })
             .build();
 
@@ -693,7 +693,7 @@ impl NoitadApplicationWindow {
         mod_objs
     }
 
-    pub fn present_profile_new_dialog(&self) {
+    pub fn present_profile_new_dialog(&self, cb: impl FnOnce() + 'static) {
         fn dialog_profile() -> (adw::AlertDialog, adw::EntryRow) {
             let dialog = adw::AlertDialog::builder()
                 .close_response("cancel")
@@ -742,10 +742,15 @@ impl NoitadApplicationWindow {
             if resp.as_str() == "create" && !text.is_empty() {
                 let save_dir = cfg.noita_path().save_dir().unwrap();
                 let mut profiles = (&cfg).profiles();
+                let profile = text.to_string();
                 _ = profiles
                     .add_profile(text, save_dir)
                     .inspect_err(|e| error!(%e));
                 cfg.set_profiles(profiles);
+                if cfg.active_profile().is_none() {
+                    cfg.set_active_profile(Some(profile));
+                }
+                cb();
             }
         });
 
